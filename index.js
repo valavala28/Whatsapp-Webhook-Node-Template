@@ -1,14 +1,14 @@
 // index.js
 const express = require("express");
 const bodyParser = require("body-parser");
-const fetch = require("node-fetch");
+const fetch = require("node-fetch"); // Make sure it's v2 if using require()
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223"; // Replace with your Phone Number ID
-const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";       // Replace with your permanent access token
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD"; // Replace with your permanent access token
 
 // Project details mapping
 const PROJECTS = {
@@ -78,9 +78,12 @@ app.post("/webhook", async (req, res) => {
         console.log(`Type: ${msg.type}`);
 
         if (msg.type === "text") {
-          const reply = msg.text.body.trim();
+          // Normalize user reply
+          const reply = msg.text.body.trim().toLowerCase();
+
+          // Check for valid project number
           if (PROJECTS[reply]) {
-            await sendText(from, PROJECTS[reply]); // Send project details
+            await sendText(from, PROJECTS[reply]);
           } else {
             await sendText(from, "❗ Please reply with 1 or 2 only to get project details.");
           }
