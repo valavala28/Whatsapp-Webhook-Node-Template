@@ -1,7 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 
-// Use global fetch available in Node.js 18+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -102,11 +101,16 @@ async function sendText(to, text) {
   }
 }
 
-// Time-based greeting
+// IST-based greeting
 function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+
+  // Convert UTC to IST (+5:30)
+  let hourIST = (utcHour + 5 + Math.floor((utcMinute + 30) / 60)) % 24;
+  if (hourIST < 12) return "Good morning";
+  if (hourIST < 17) return "Good afternoon";
   return "Good evening";
 }
 
@@ -138,7 +142,7 @@ app.post("/webhook", async (req, res) => {
           const greeting = getGreeting();
           await sendText(
             from,
-            `Hi ${userName}! 👋 ${greeting}!\nwelcome to Abode Constructions\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`
+            `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`
           );
           sessions[from].step = 2;
         } else if (step === 2) {
@@ -148,13 +152,15 @@ app.post("/webhook", async (req, res) => {
             sessions[from].step = 3;
           } else if (reply === "2" || reply.includes("contact")) {
             await sendText(from, "📞 Contact Sales: +91-8008312211\n📧 Email: abodegroups3@gmail.com");
-            sessions[from].step = 2;
+            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+            sessions[from].step = 1;
           } else if (reply === "3" || reply.includes("brochure")) {
             await sendText(
               from,
               `📄 Download brochures:\nAbode Aravindam 2BHK: ${PROJECTS["1"].brochure["2BHK"]}\nAbode Aravindam 3BHK: ${PROJECTS["1"].brochure["3BHK"]}\nMJ Lakeview 2BHK: ${PROJECTS["2"].brochure["2BHK"]}\nMJ Lakeview 3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
             );
-            sessions[from].step = 2;
+            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+            sessions[from].step = 1;
           } else {
             await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
           }
@@ -165,15 +171,17 @@ app.post("/webhook", async (req, res) => {
               from,
               `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
             );
+            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
           } else if (reply === "2") {
             await sendText(
               from,
               `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
             );
+            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
           } else {
             await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
           }
-          sessions[from].step = 2;
+          sessions[from].step = 1;
         }
       }
     }
