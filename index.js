@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const fetch = require("node-fetch"); // Ensure node-fetch v2 is installed for CommonJS
 
+// Use global fetch available in Node.js 18+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -74,10 +74,10 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Send text message function
+// Send text message
 async function sendText(to, text) {
   try {
-    await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+    const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${TOKEN}`,
@@ -90,13 +90,19 @@ async function sendText(to, text) {
         text: { body: text },
       }),
     });
-    console.log(`✅ Sent message to ${to}`);
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("❌ Failed to send message:", data);
+    } else {
+      console.log(`✅ Sent message to ${to}`);
+    }
   } catch (error) {
     console.error("❌ Error sending message:", error);
   }
 }
 
-// Determine greeting based on time
+// Time-based greeting
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -113,37 +119,30 @@ app.post("/webhook", async (req, res) => {
 
     if (changes?.value?.messages) {
       const messages = changes.value.messages;
-      const contacts = changes.value.contacts; // Capture user contact info for name
+      const contacts = changes.value.contacts;
 
       for (const msg of messages) {
         const from = msg.from;
         const text = msg.text?.body?.trim() || "";
-        const userName = contacts?.[0]?.profile?.name || "there"; // Get user name safely
+        const userName = contacts?.[0]?.profile?.name || "there";
 
-        console.log("📩 Incoming message:");
-        console.log(`From: ${from}`);
-        console.log(`Message: ${text}`);
-        console.log(`User Name: ${userName}`);
+        console.log(`📩 Incoming message from ${from} (${userName}): ${text}`);
 
-        // Initialize session if new
         if (!sessions[from]) {
           sessions[from] = { step: 1 };
         }
 
         const step = sessions[from].step;
 
-        // Step 1: Send greeting
         if (step === 1) {
           const greeting = getGreeting();
-          const greetingMsg = `Hi ${userName}! 👋 ${greeting}!\nHow may I help you?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`;
-          await sendText(from, greetingMsg);
+          await sendText(
+            from,
+            `Hi ${userName}! 👋 ${greeting}!\nwelcome to Abode Constructions\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`
+          );
           sessions[from].step = 2;
-        }
-
-        // Step 2: Handle menu options
-        else if (step === 2) {
+        } else if (step === 2) {
           const reply = text.toLowerCase();
-
           if (reply === "1" || reply.includes("project")) {
             await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
             sessions[from].step = 3;
@@ -159,10 +158,7 @@ app.post("/webhook", async (req, res) => {
           } else {
             await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
           }
-        }
-
-        // Step 3: Handle project details
-        else if (step === 3) {
+        } else if (step === 3) {
           const reply = text.trim();
           if (reply === "1") {
             await sendText(
@@ -177,7 +173,7 @@ app.post("/webhook", async (req, res) => {
           } else {
             await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
           }
-          sessions[from].step = 2; // Return to main menu
+          sessions[from].step = 2;
         }
       }
     }
@@ -190,4 +186,3 @@ app.post("/webhook", async (req, res) => {
 
 // Start server
 app.listen(PORT, () => console.log(`✅ Webhook server running on port ${PORT}`));
-
