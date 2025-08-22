@@ -1,7 +1,7 @@
 // index.js
 const express = require("express");
 const bodyParser = require("body-parser");
-const fetch = require("node-fetch"); // Make sure it's v2 if using require()
+//const fetch = require("node-fetch"); // Make sure it's v2 if using require()
 
 const app = express();
 const PORT = process.env.PORT || 3000;
