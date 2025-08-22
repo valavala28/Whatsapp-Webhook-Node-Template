@@ -1,7 +1,7 @@
 // index.js
 const express = require("express");
 const bodyParser = require("body-parser");
-//const fetch = require("node-fetch"); // Make sure it's v2 if using require()
+const fetch = require("node-fetch"); // Make sure it's v2 if using require()
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,10 +10,35 @@ const PORT = process.env.PORT || 3000;
 const PHONE_ID = "749224044936223"; // Replace with your Phone Number ID
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD"; // Replace with your permanent access token
 
-// Project details mapping
+// Project details mapping (short, user-friendly)
 const PROJECTS = {
-  "1": "🏢 ABODE ARAVINDHAM @ Tellapur\n📍 Location: Tellapur\n🛏️ Units: 2 & 3 BHK\n💰 Price: ₹80L onwards\n🌐 https://abodegroups.com/projects/aravindam/",
-  "2": "🏢 MJ LAKE VIEW HEIGHTS @ Ameenpur\n📍 Location: Ameenpur\n🛏️ Units: 2 & 3 BHK\n💰 Price: ₹70L onwards\n🌐 https://abodegroups.com/projects/mj-lakeview-heights/"
+  "1": `🏢 *Abode Aravindam* – Tellapur
+📏 5.27 acres | 567 2 & 3 BHK apartments
+
+✨ Why Choose Us?
+• Spacious, airy layouts with natural light
+• Prime location near schools, hospitals & shopping
+• Lifestyle amenities: Private Theatre, Club House, Gym, Walking Trails
+
+🏠 Unit Plans
+• Thoughtfully designed 2 & 3 BHK apartments
+• Large windows & open balconies for bright, airy homes
+• Smart layouts: living, dining & kitchen areas optimized
+• Premium finishes for modern luxury & comfort
+
+🌐 More info: https://abodegroups.com/projects/aravindam/`,
+
+  "2": `🏢 *MJ Lakeview Heights* – Ameenpur
+📍 Beside Pedda Cheruvu Lake | 2 & 3 BHK | G+10 Floors | 174 Flats
+💰 Starting From: ₹82L onwards
+
+✨ Why Choose Us?
+• Lake-facing views & abundant natural light
+• Smart layouts: living, dining & kitchen optimized
+• Prime location near schools, hospitals & shopping
+• Lifestyle amenities: Clubhouse, Banquet Hall, Indoor Games, Yoga/Meditation spaces
+
+🌐 More info: https://abodegroups.com/projects/mj-lakeview-heights/`
 };
 
 // Middleware
@@ -79,7 +104,7 @@ app.post("/webhook", async (req, res) => {
 
         if (msg.type === "text") {
           // Normalize user reply
-          const reply = msg.text.body.trim().toLowerCase();
+          const reply = msg.text.body.trim();
 
           // Check for valid project number
           if (PROJECTS[reply]) {
