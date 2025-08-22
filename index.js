@@ -1,14 +1,13 @@
-// index.js
 const express = require("express");
 const bodyParser = require("body-parser");
-//const fetch = require("node-fetch"); // Make sure node-fetch v2 if using require()
+const fetch = require("node-fetch"); // Ensure node-fetch v2 is installed for CommonJS
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223"; // Replace with your Phone Number ID
-const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD"; // Replace with your token
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
 // In-memory session tracking
 const sessions = {};
@@ -70,16 +69,18 @@ app.get("/webhook", (req, res) => {
   if (mode && token === VERIFY_TOKEN) {
     console.log("WEBHOOK_VERIFIED");
     res.status(200).send(challenge);
-  } else res.sendStatus(403);
+  } else {
+    res.sendStatus(403);
+  }
 });
 
-// Send text message
+// Send text message function
 async function sendText(to, text) {
   try {
     await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -112,14 +113,17 @@ app.post("/webhook", async (req, res) => {
 
     if (changes?.value?.messages) {
       const messages = changes.value.messages;
+      const contacts = changes.value.contacts; // Capture user contact info for name
 
       for (const msg of messages) {
         const from = msg.from;
         const text = msg.text?.body?.trim() || "";
+        const userName = contacts?.[0]?.profile?.name || "there"; // Get user name safely
 
         console.log("📩 Incoming message:");
         console.log(`From: ${from}`);
         console.log(`Message: ${text}`);
+        console.log(`User Name: ${userName}`);
 
         // Initialize session if new
         if (!sessions[from]) {
@@ -128,66 +132,52 @@ app.post("/webhook", async (req, res) => {
 
         const step = sessions[from].step;
 
-        // Step 1: Greeting
+        // Step 1: Send greeting
         if (step === 1) {
           const greeting = getGreeting();
-          const name = msg.profile?.name || "there"; // Use WhatsApp profile name if available
-
-          const greetingMsg = `Hi ${name}! 👋 ${greeting}!\nHow may I help you ?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`;
-
+          const greetingMsg = `Hi ${userName}! 👋 ${greeting}!\nHow may I help you?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`;
           await sendText(from, greetingMsg);
           sessions[from].step = 2;
         }
-        // Step 2: Handle user reply
+
+        // Step 2: Handle menu options
         else if (step === 2) {
           const reply = text.toLowerCase();
 
           if (reply === "1" || reply.includes("project")) {
-            let msgText = "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights";
-            await sendText(from, msgText);
+            await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
             sessions[from].step = 3;
           } else if (reply === "2" || reply.includes("contact")) {
-            await sendText(
-              from,
-              "📞 Contact Sales: +91-8008312211\n📧 Email: abodegroups3@gmail.com"
-            );
-            sessions[from].step = 2; // Keep them at menu
+            await sendText(from, "📞 Contact Sales: +91-8008312211\n📧 Email: abodegroups3@gmail.com");
+            sessions[from].step = 2;
           } else if (reply === "3" || reply.includes("brochure")) {
             await sendText(
               from,
-              "📄 Download brochures:\nAbode Aravindam 2BHK: " +
-                PROJECTS["1"].brochure["2BHK"] +
-                "\nAbode Aravindam 3BHK: " +
-                PROJECTS["1"].brochure["3BHK"] +
-                "\nMJ Lakeview 2BHK: " +
-                PROJECTS["2"].brochure["2BHK"] +
-                "\nMJ Lakeview 3BHK: " +
-                PROJECTS["2"].brochure["3BHK"]
+              `📄 Download brochures:\nAbode Aravindam 2BHK: ${PROJECTS["1"].brochure["2BHK"]}\nAbode Aravindam 3BHK: ${PROJECTS["1"].brochure["3BHK"]}\nMJ Lakeview 2BHK: ${PROJECTS["2"].brochure["2BHK"]}\nMJ Lakeview 3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
             );
             sessions[from].step = 2;
           } else {
             await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
           }
         }
-        // Step 3: Handle project selection
+
+        // Step 3: Handle project details
         else if (step === 3) {
           const reply = text.trim();
           if (reply === "1") {
             await sendText(
               from,
-              PROJECTS["1"].details +
-                `\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
+              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
             );
           } else if (reply === "2") {
             await sendText(
               from,
-              PROJECTS["2"].details +
-                `\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
+              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
             );
           } else {
             await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
           }
-          sessions[from].step = 2; // Go back to main menu
+          sessions[from].step = 2; // Return to main menu
         }
       }
     }
@@ -199,6 +189,5 @@ app.post("/webhook", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () =>
-  console.log(`✅ Webhook server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`✅ Webhook server running on port ${PORT}`));
+
