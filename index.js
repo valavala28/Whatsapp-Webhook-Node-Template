@@ -15,7 +15,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEB4GqQxEPr8CI
 // In-memory session tracking
 const sessions = {};
 
-// Project Details (static text, links generated dynamically)
+// Project Details with dynamic brochure links
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -93,13 +93,9 @@ async function sendText(to, text) {
         text: { body: text },
       }),
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      console.error("❌ Failed to send message:", data);
-    } else {
-      console.log(`✅ Sent message to ${to}`);
-    }
+    if (!response.ok) console.error("❌ Failed to send message:", data);
+    else console.log(`✅ Sent message to ${to}`);
   } catch (error) {
     console.error("❌ Error sending message:", error);
   }
@@ -124,13 +120,9 @@ async function sendDocument(to, pdfLink, filename) {
         }
       }),
     });
-
     const data = await response.json();
-    if (!response.ok) {
-      console.error("❌ Failed to send document:", data);
-    } else {
-      console.log(`✅ Sent document to ${to}`);
-    }
+    if (!response.ok) console.error("❌ Failed to send document:", data);
+    else console.log(`✅ Sent document to ${to}`);
   } catch (error) {
     console.error("❌ Error sending document:", error);
   }
@@ -154,7 +146,6 @@ function getGreeting() {
   const now = new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();
-
   let hourIST = (utcHour + 5 + Math.floor((utcMinute + 30) / 60)) % 24;
   if (hourIST < 12) return "Good morning";
   if (hourIST < 17) return "Good afternoon";
@@ -164,81 +155,79 @@ function getGreeting() {
 // Webhook receiver
 app.post("/webhook", async (req, res) => {
   const body = req.body;
+  if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
 
-  if (body.object === "whatsapp_business_account") {
-    const changes = body.entry?.[0]?.changes?.[0];
+  const changes = body.entry?.[0]?.changes?.[0];
+  if (!changes?.value?.messages) return res.sendStatus(200);
 
-    if (changes?.value?.messages) {
-      const messages = changes.value.messages;
-      const contacts = changes.value.contacts;
+  const messages = changes.value.messages;
+  const contacts = changes.value.contacts;
 
-      for (const msg of messages) {
-        const from = msg.from;
-        const text = msg.text?.body?.trim() || "";
-        const userName = contacts?.[0]?.profile?.name || "there";
+  for (const msg of messages) {
+    const from = msg.from;
+    const text = msg.text?.body?.trim() || "";
+    const userName = contacts?.[0]?.profile?.name || "there";
 
-        console.log(`📩 Incoming message from ${from} (${userName}): ${text}`);
+    console.log(`📩 Incoming message from ${from} (${userName}): ${text}`);
 
-        if (!sessions[from]) {
-          sessions[from] = { step: 1 };
-        }
+    if (!sessions[from]) sessions[from] = { step: 1 };
+    const step = sessions[from].step;
 
-        const step = sessions[from].step;
+    if (step === 1) {
+      const greeting = getGreeting();
+      await sendText(
+        from,
+        `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Details\n3️⃣ Download Brochure`
+      );
+      sessions[from].step = 2;
+    } else if (step === 2) {
+      const reply = text.toLowerCase();
+      if (reply === "1" || reply.includes("project")) {
+        await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
+        sessions[from].step = 3;
+      } else if (reply === "2" || reply.includes("contact")) {
+        await sendText(
+          from,
+          "📞 Contact Details: +91-8008312211\n📧 Email: abodegroups3@gmail.com\nVisit Website: https://abodegroups.com/\nBook a Site Visit: https://abodegroups.com/contact-us/"
+        );
+        await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+        sessions[from].step = 1;
+      } else if (reply === "3" || reply.includes("brochure")) {
+        await sendText(from, "📄 Please find the brochures below:");
+        const aravindham2BHK = await getSecureBrochureLink("1", "2BHK", from);
+        const aravindham3BHK = await getSecureBrochureLink("1", "3BHK", from);
+        const mj2BHK = await getSecureBrochureLink("2", "2BHK", from);
+        const mj3BHK = await getSecureBrochureLink("2", "3BHK", from);
 
-        if (step === 1) {
-          const greeting = getGreeting();
-          await sendText(
-            from,
-            `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Details\n3️⃣ Download Brochure`
-          );
-          sessions[from].step = 2;
-        } else if (step === 2) {
-          const reply = text.toLowerCase();
-          if (reply === "1" || reply.includes("project")) {
-            await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
-            sessions[from].step = 3;
-          } else if (reply === "2" || reply.includes("contact")) {
-            await sendText(from, "📞 Contact Details: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n Visit Website: https://abodegroups.com/\n Book a Site Visit: https://abodegroups.com/contact-us/");
-            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
-            sessions[from].step = 1;
-          } else if (reply === "3" || reply.includes("brochure")) {
-            const aravindham2BHK = await getSecureBrochureLink("1", "2BHK", from);
-            const aravindham3BHK = await getSecureBrochureLink("1", "3BHK", from);
-            const mj2BHK = await getSecureBrochureLink("2", "2BHK", from);
-            const mj3BHK = await getSecureBrochureLink("2", "3BHK", from);
+        await sendDocument(from, aravindham2BHK, "AbodeAravindham_2BHK.pdf");
+        await sendDocument(from, aravindham3BHK, "AbodeAravindham_3BHK.pdf");
+        await sendDocument(from, mj2BHK, "MJLakeview_2BHK.pdf");
+        await sendDocument(from, mj3BHK, "MJLakeview_3BHK.pdf");
 
-            await sendDocument(from, aravindham2BHK, "AbodeAravindham_2BHK.pdf");
-            await sendDocument(from, aravindham3BHK, "AbodeAravindham_3BHK.pdf");
-            await sendDocument(from, mj2BHK, "MJLakeview_2BHK.pdf");
-            await sendDocument(from, mj3BHK, "MJLakeview_3BHK.pdf");
-
-            sessions[from].step = 1;
-          } else {
-            await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
-          }
-        } else if (step === 3) {
-          const reply = text.trim();
-          if (reply === "1") {
-            await sendText(from, PROJECTS["1"].details);
-            await sendDocument(from, await getSecureBrochureLink("1","2BHK",from), "AbodeAravindham_2BHK.pdf");
-            await sendDocument(from, await getSecureBrochureLink("1","3BHK",from), "AbodeAravindham_3BHK.pdf");
-            sessions[from].step = 1;
-          } else if (reply === "2") {
-            await sendText(from, PROJECTS["2"].details);
-            await sendDocument(from, await getSecureBrochureLink("2","2BHK",from), "MJLakeview_2BHK.pdf");
-            await sendDocument(from, await getSecureBrochureLink("2","3BHK",from), "MJLakeview_3BHK.pdf");
-            sessions[from].step = 1;
-          } else {
-            await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
-          }
-        }
+        await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+        sessions[from].step = 1;
+      } else {
+        await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
+      }
+    } else if (step === 3) {
+      const reply = text.trim();
+      if (reply === "1") {
+        await sendText(from, PROJECTS["1"].details);
+        await sendDocument(from, await getSecureBrochureLink("1","2BHK",from), "AbodeAravindham_2BHK.pdf");
+        await sendDocument(from, await getSecureBrochureLink("1","3BHK",from), "AbodeAravindham_3BHK.pdf");
+        sessions[from].step = 1;
+      } else if (reply === "2") {
+        await sendText(from, PROJECTS["2"].details);
+        await sendDocument(from, await getSecureBrochureLink("2","2BHK",from), "MJLakeview_2BHK.pdf");
+        await sendDocument(from, await getSecureBrochureLink("2","3BHK",from), "MJLakeview_3BHK.pdf");
+        sessions[from].step = 1;
+      } else {
+        await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
       }
     }
-
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
   }
+
+  res.sendStatus(200);
 });
 
 // Start server
