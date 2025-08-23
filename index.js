@@ -37,16 +37,16 @@ const PROJECTS = {
 };*/
 import express from "express";
 import bodyParser from "body-parser";
-//import fetch from "node-fetch";
+import fetch from "node-fetch";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// WhatsApp Cloud API
+// WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Apps Script
+// Google Apps Script Web App URL
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
 
 // Sessions
@@ -58,10 +58,10 @@ const PROJECTS = {
   "2": { name: "MJ Lakeview Heights – Ameenpur" },
 };
 
-// Project keys for Apps Script
+// Mapping to Apps Script FILE_MAP keys
 const PROJECT_KEYS = {
   "1": { "2BHK": "AbodeAravindham2BHK", "3BHK": "AbodeAravindham3BHK" },
-  "2": { "2BHK": "MJLakeview2BHK",      "3BHK": "MJLakeview3BHK" }
+  "2": { "2BHK": "MJLakeview2BHK", "3BHK": "MJLakeview3BHK" }
 };
 
 app.use(bodyParser.json());
@@ -95,21 +95,28 @@ async function sendDocument(to, pdfLink, filename) {
   const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "document", document: { link: pdfLink, filename } }),
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "document",
+      document: { link: pdfLink, filename }
+    }),
   });
   const data = await res.json();
   if (!res.ok) console.error("❌ Failed to send document:", data);
   else console.log(`✅ Sent document to ${to}`);
 }
 
-// Fetch secure PDF from Apps Script
+// Fetch secure brochure link from Apps Script
 async function getSecureBrochureLink(projectId, unitType, phone, username) {
   try {
     const projectKey = PROJECT_KEYS[projectId]?.[unitType];
     if (!projectKey) throw new Error(`Unknown project/unit: ${projectId} ${unitType}`);
+
     const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
     const res = await fetch(url);
     const link = await res.text();
+
     if (!link.startsWith("http")) throw new Error(`Apps Script returned non-URL: ${link}`);
     return link;
   } catch (err) {
@@ -127,7 +134,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-// Webhook receiver
+// Webhook (messages)
 app.post("/webhook", async (req, res) => {
   const body = req.body;
   if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
@@ -148,7 +155,10 @@ app.post("/webhook", async (req, res) => {
     const step = sessions[from].step;
 
     if (step === 1) {
-      await sendText(from, `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`);
+      await sendText(from,
+        `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n` +
+        `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
+      );
       sessions[from].step = 2;
 
     } else if (step === 2) {
