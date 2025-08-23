@@ -142,7 +142,7 @@ app.post("/webhook", async (req, res) => {
           const greeting = getGreeting();
           await sendText(
             from,
-            `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Sales\n3️⃣ Download Brochure`
+            `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ I want to know about projects\n2️⃣ Contact Details\n3️⃣ Download Brochure`
           );
           sessions[from].step = 2;
         } else if (step === 2) {
@@ -151,7 +151,7 @@ app.post("/webhook", async (req, res) => {
             await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
             sessions[from].step = 3;
           } else if (reply === "2" || reply.includes("contact")) {
-            await sendText(from, "📞 Contact Sales: +91-8008312211\n📧 Email: abodegroups3@gmail.com");
+            await sendText(from, "📞 Contact Details: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n Visit Website: https://abodegroups.com/\n Book a Site Visit: https://abodegroups.com/contact-us/");
             await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
             sessions[from].step = 1;
           } else if (reply === "3" || reply.includes("brochure")) {
