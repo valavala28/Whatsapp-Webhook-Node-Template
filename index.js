@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+//const fetch = require("node-fetch"); // Make sure node-fetch is installed
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,10 +9,13 @@ const PORT = process.env.PORT || 3000;
 const PHONE_ID = "749224044936223"; // Replace with your Phone Number ID
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
+// Google Apps Script Web App URL
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEB4GqQxEPr8CIwGohC71P1Vk_wiJFGAmIOJzHj9djmWezxabKvjW8weSq1oWhSFWYLw/exec";
+
 // In-memory session tracking
 const sessions = {};
 
-// Project Details with Drive links
+// Project Details (replace static links with Apps Script URL + parameters)
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -28,8 +32,8 @@ const PROJECTS = {
 • Premium finishes for modern comfort
 🌐 More info: https://abodegroups.com/projects/aravindam/`,
     brochure: {
-      "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
-      "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
+      "2BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham2BHK&phone=`,
+      "3BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham3BHK&phone=`,
     },
   },
   "2": {
@@ -46,8 +50,8 @@ const PROJECTS = {
 • Elegant living, dining & kitchen areas
 🌐 More info: https://abodegroups.com/projects/mj-lakeview-heights/`,
     brochure: {
-      "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
-      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "2BHK": `${APPS_SCRIPT_URL}?project=MJLakeview2BHK&phone=`,
+      "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
     },
   },
 };
@@ -101,13 +105,25 @@ async function sendText(to, text) {
   }
 }
 
+// Fetch secure brochure link from Apps Script
+async function getSecureBrochureLink(projectId, unitType, userPhone) {
+  try {
+    const url = PROJECTS[projectId].brochure[unitType] + encodeURIComponent(userPhone);
+    const response = await fetch(url);
+    const link = await response.text();
+    return link;
+  } catch (error) {
+    console.error("❌ Error fetching secure brochure link:", error);
+    return null;
+  }
+}
+
 // IST-based greeting
 function getGreeting() {
   const now = new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();
 
-  // Convert UTC to IST (+5:30)
   let hourIST = (utcHour + 5 + Math.floor((utcMinute + 30) / 60)) % 24;
   if (hourIST < 12) return "Good morning";
   if (hourIST < 17) return "Good afternoon";
@@ -155,10 +171,17 @@ app.post("/webhook", async (req, res) => {
             await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
             sessions[from].step = 1;
           } else if (reply === "3" || reply.includes("brochure")) {
-            await sendText(
-              from,
-              `📄 Download brochures:\nAbode Aravindam 2BHK: ${PROJECTS["1"].brochure["2BHK"]}\nAbode Aravindam 3BHK: ${PROJECTS["1"].brochure["3BHK"]}\nMJ Lakeview 2BHK: ${PROJECTS["2"].brochure["2BHK"]}\nMJ Lakeview 3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
-            );
+            const aravindham2BHK = await getSecureBrochureLink("1", "2BHK", from);
+            const aravindham3BHK = await getSecureBrochureLink("1", "3BHK", from);
+            const mj2BHK = await getSecureBrochureLink("2", "2BHK", from);
+            const mj3BHK = await getSecureBrochureLink("2", "3BHK", from);
+
+            await sendText(from, `📄 Download brochures securely:
+Abode Aravindam 2BHK: ${aravindham2BHK}
+Abode Aravindam 3BHK: ${aravindham3BHK}
+MJ Lakeview 2BHK: ${mj2BHK}
+MJ Lakeview 3BHK: ${mj3BHK}`);
+
             await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
             sessions[from].step = 1;
           } else {
@@ -169,13 +192,13 @@ app.post("/webhook", async (req, res) => {
           if (reply === "1") {
             await sendText(
               from,
-              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
+              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${await getSecureBrochureLink("1","2BHK",from)}\n3BHK: ${await getSecureBrochureLink("1","3BHK",from)}`
             );
             await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
           } else if (reply === "2") {
             await sendText(
               from,
-              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
+              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${await getSecureBrochureLink("2","2BHK",from)}\n3BHK: ${await getSecureBrochureLink("2","3BHK",from)}`
             );
             await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
           } else {
