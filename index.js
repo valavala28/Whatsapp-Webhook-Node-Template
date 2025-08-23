@@ -15,7 +15,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEB4GqQxEPr8CI
 // In-memory session tracking
 const sessions = {};
 
-// Project Details (replace static links with Apps Script URL + parameters)
+// Project Details (static text, links generated dynamically)
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -105,6 +105,37 @@ async function sendText(to, text) {
   }
 }
 
+// Send PDF as document
+async function sendDocument(to, pdfLink, filename) {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "document",
+        document: {
+          link: pdfLink,
+          filename: filename
+        }
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("❌ Failed to send document:", data);
+    } else {
+      console.log(`✅ Sent document to ${to}`);
+    }
+  } catch (error) {
+    console.error("❌ Error sending document:", error);
+  }
+}
+
 // Fetch secure brochure link from Apps Script
 async function getSecureBrochureLink(projectId, unitType, userPhone) {
   try {
@@ -176,13 +207,11 @@ app.post("/webhook", async (req, res) => {
             const mj2BHK = await getSecureBrochureLink("2", "2BHK", from);
             const mj3BHK = await getSecureBrochureLink("2", "3BHK", from);
 
-            await sendText(from, `📄 Download brochures securely:
-Abode Aravindam 2BHK: ${aravindham2BHK}
-Abode Aravindam 3BHK: ${aravindham3BHK}
-MJ Lakeview 2BHK: ${mj2BHK}
-MJ Lakeview 3BHK: ${mj3BHK}`);
+            await sendDocument(from, aravindham2BHK, "AbodeAravindham_2BHK.pdf");
+            await sendDocument(from, aravindham3BHK, "AbodeAravindham_3BHK.pdf");
+            await sendDocument(from, mj2BHK, "MJLakeview_2BHK.pdf");
+            await sendDocument(from, mj3BHK, "MJLakeview_3BHK.pdf");
 
-            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
             sessions[from].step = 1;
           } else {
             await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
@@ -190,21 +219,18 @@ MJ Lakeview 3BHK: ${mj3BHK}`);
         } else if (step === 3) {
           const reply = text.trim();
           if (reply === "1") {
-            await sendText(
-              from,
-              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${await getSecureBrochureLink("1","2BHK",from)}\n3BHK: ${await getSecureBrochureLink("1","3BHK",from)}`
-            );
-            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+            await sendText(from, PROJECTS["1"].details);
+            await sendDocument(from, await getSecureBrochureLink("1","2BHK",from), "AbodeAravindham_2BHK.pdf");
+            await sendDocument(from, await getSecureBrochureLink("1","3BHK",from), "AbodeAravindham_3BHK.pdf");
+            sessions[from].step = 1;
           } else if (reply === "2") {
-            await sendText(
-              from,
-              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${await getSecureBrochureLink("2","2BHK",from)}\n3BHK: ${await getSecureBrochureLink("2","3BHK",from)}`
-            );
-            await sendText(from, "🙏 Thank you for contacting Abode Constructions. Feel free to ask your queries anytime!");
+            await sendText(from, PROJECTS["2"].details);
+            await sendDocument(from, await getSecureBrochureLink("2","2BHK",from), "MJLakeview_2BHK.pdf");
+            await sendDocument(from, await getSecureBrochureLink("2","3BHK",from), "MJLakeview_3BHK.pdf");
+            sessions[from].step = 1;
           } else {
             await sendText(from, "❗ Please reply with 1 or 2 to get project details.");
           }
-          sessions[from].step = 1;
         }
       }
     }
