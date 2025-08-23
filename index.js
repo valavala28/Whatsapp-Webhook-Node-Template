@@ -1,21 +1,4 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-//const fetch = require("node-fetch");
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// WhatsApp Cloud API credentials
-const PHONE_ID = "749224044936223"; 
-const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
-
-// Google Apps Script Web App URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
-
-// In-memory sessions
-const sessions = {};
-
-// Project details and brochure mapping
+/* Project details and brochure mapping
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -51,28 +34,30 @@ const PROJECTS = {
       "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
     },
   },
-};
-
-
-
-
-// Projects and brochure mapping
-/*const PROJECTS = {
-  "1": {
-    name: "Abode Aravindam – Tellapur",
-    brochure: {
-      "2BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham2BHK&phone=`,
-      "3BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham3BHK&phone=`,
-    },
-  },
-  "2": {
-    name: "MJ Lakeview Heights – Ameenpur",
-    brochure: {
-      "2BHK": `${APPS_SCRIPT_URL}?project=MJLakeview2BHK&phone=`,
-      "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
-    },
-  },
 };*/
+
+const express = require("express");
+const bodyParser = require("body-parser");
+//const fetch = require("node-fetch");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// WhatsApp Cloud API credentials
+const PHONE_ID = "749224044936223"; 
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
+
+// Google Apps Script Web App URL
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
+
+// In-memory sessions
+const sessions = {};
+
+// Project details
+const PROJECTS = {
+  "1": { name: "Abode Aravindam – Tellapur" },
+  "2": { name: "MJ Lakeview Heights – Ameenpur" },
+};
 
 // Middleware
 app.use(bodyParser.json());
@@ -86,73 +71,50 @@ app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
-
-  if (mode && token === VERIFY_TOKEN) {
-    console.log("WEBHOOK_VERIFIED");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
-  }
+  if (mode && token === VERIFY_TOKEN) res.status(200).send(challenge);
+  else res.sendStatus(403);
 });
 
 // Send WhatsApp text
 async function sendText(to, text) {
-  const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+  const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { body: text },
-    }),
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body: text } }),
   });
-  const data = await response.json();
-  if (!response.ok) console.error("❌ Failed to send message:", data);
-  else console.log(`✅ Sent message to ${to}`);
+  const data = await res.json();
+  if (!res.ok) console.error("❌ Failed to send text:", data);
+  else console.log(`✅ Sent text to ${to}`);
 }
 
 // Send WhatsApp PDF
 async function sendDocument(to, pdfLink, filename) {
-  const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+  const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "document",
-      document: { link: pdfLink, filename },
-    }),
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "document", document: { link: pdfLink, filename } }),
   });
-  const data = await response.json();
-  if (!response.ok) console.error("❌ Failed to send document:", data);
+  const data = await res.json();
+  if (!res.ok) console.error("❌ Failed to send document:", data);
   else console.log(`✅ Sent document to ${to}`);
 }
 
-// Get secure brochure link from Google Apps Script
-async function getSecureBrochureLink(projectId, unitType, userPhone) {
+// Get secure per-user PDF link from Apps Script
+async function getSecureBrochureLink(projectId, unitType, phone, username) {
   try {
-    const url = PROJECTS[projectId].brochure[unitType] + encodeURIComponent(userPhone);
-    const response = await fetch(url);
-    return await response.text();
-  } catch (error) {
-    console.error("❌ Error fetching brochure link:", error);
+    const url = `${APPS_SCRIPT_URL}?project=${projectId}${unitType}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
+    const res = await fetch(url);
+    return await res.text();
+  } catch (err) {
+    console.error("❌ Error fetching secure brochure link:", err);
     return null;
   }
 }
 
-// IST greeting
+// Greeting in IST
 function getGreeting() {
   const now = new Date();
-  const utcHour = now.getUTCHours();
-  const utcMinute = now.getUTCMinutes();
-  const hourIST = (utcHour + 5 + Math.floor((utcMinute + 30) / 60)) % 24;
+  const hourIST = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
   if (hourIST < 12) return "Good morning";
   if (hourIST < 17) return "Good afternoon";
   return "Good evening";
@@ -163,11 +125,9 @@ app.post("/webhook", async (req, res) => {
   const body = req.body;
   if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
 
-  const change = body.entry?.[0]?.changes?.[0];
-  if (!change?.value?.messages) return res.sendStatus(200);
-
-  const messages = change.value.messages;
-  const contacts = change.value.contacts;
+  const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
+  const contacts = body.entry?.[0]?.changes?.[0]?.value?.contacts;
+  if (!messages) return res.sendStatus(200);
 
   for (const msg of messages) {
     const from = msg.from;
@@ -180,45 +140,41 @@ app.post("/webhook", async (req, res) => {
     const step = sessions[from].step;
 
     if (step === 1) {
-      const greeting = getGreeting();
-      await sendText(
-        from,
-        `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
-      );
+      await sendText(from, `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`);
       sessions[from].step = 2;
     } else if (step === 2) {
-      const reply = text.toLowerCase();
-      if (reply === "1" || reply.includes("project")) {
+      if (text === "1" || text.toLowerCase().includes("project")) {
         await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
         sessions[from].step = 3;
-      } else if (reply === "2" || reply.includes("contact")) {
-        await sendText(
-          from,
-          "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/"
-        );
+      } else if (text === "2" || text.toLowerCase().includes("contact")) {
+        await sendText(from, "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/");
         sessions[from].step = 1;
-      } else if (reply === "3" || reply.includes("brochure")) {
+      } else if (text === "3" || text.toLowerCase().includes("brochure")) {
         await sendText(from, "📄 Sending brochures...");
         for (const projectId of ["1", "2"]) {
           for (const type of ["2BHK", "3BHK"]) {
-            const link = await getSecureBrochureLink(projectId, type, from);
-            await sendDocument(from, link, `${PROJECTS[projectId].name}_${type}.pdf`);
+            const link = await getSecureBrochureLink(projectId, type, from, userName);
+            if (link) await sendDocument(from, link, `${PROJECTS[projectId].name}_${type}.pdf`);
           }
         }
         sessions[from].step = 1;
       } else {
-        await sendText(from, "❗ Please reply with 1, 2, or 3 only.");
+        await sendText(from, "❗ Reply with 1, 2, or 3 only.");
       }
     } else if (step === 3) {
-      if (text === "1") {
+      if (text === "1" || text.includes("1")) {
         await sendText(from, PROJECTS["1"].name);
-        await sendDocument(from, await getSecureBrochureLink("1", "2BHK", from), "AbodeAravindham_2BHK.pdf");
-        await sendDocument(from, await getSecureBrochureLink("1", "3BHK", from), "AbodeAravindham_3BHK.pdf");
+        for (const type of ["2BHK", "3BHK"]) {
+          const link = await getSecureBrochureLink("1", type, from, userName);
+          if (link) await sendDocument(from, link, `AbodeAravindham_${type}.pdf`);
+        }
         sessions[from].step = 1;
-      } else if (text === "2") {
+      } else if (text === "2" || text.includes("2")) {
         await sendText(from, PROJECTS["2"].name);
-        await sendDocument(from, await getSecureBrochureLink("2", "2BHK", from), "MJLakeview_2BHK.pdf");
-        await sendDocument(from, await getSecureBrochureLink("2", "3BHK", from), "MJLakeview_3BHK.pdf");
+        for (const type of ["2BHK", "3BHK"]) {
+          const link = await getSecureBrochureLink("2", type, from, userName);
+          if (link) await sendDocument(from, link, `MJLakeview_${type}.pdf`);
+        }
         sessions[from].step = 1;
       } else {
         await sendText(from, "❗ Reply with 1 or 2 to select a project.");
