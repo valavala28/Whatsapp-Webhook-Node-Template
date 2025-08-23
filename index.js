@@ -6,12 +6,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // WhatsApp Cloud API credentials
-const PHONE_ID = "749224044936223"; // Replace with your Phone Number ID
+const PHONE_ID = "749224044936223"; 
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Apps Script Web App URLs
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEB4GqQxEPr8CIwGohC71P1Vk_wiJFGAmIOJzHj9djmWezxabKvjW8weSq1oWhSFWYLw/exec";
-const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/YOUR-SHEET-WEBHOOK-ID/exec"; // <-- Replace with script to log user details
+// Google Apps Script Web App URL
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
 
 // In-memory sessions
 const sessions = {};
@@ -53,6 +52,27 @@ const PROJECTS = {
     },
   },
 };
+
+
+
+
+// Projects and brochure mapping
+/*const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    brochure: {
+      "2BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham2BHK&phone=`,
+      "3BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham3BHK&phone=`,
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    brochure: {
+      "2BHK": `${APPS_SCRIPT_URL}?project=MJLakeview2BHK&phone=`,
+      "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
+    },
+  },
+};*/
 
 // Middleware
 app.use(bodyParser.json());
@@ -107,7 +127,7 @@ async function sendDocument(to, pdfLink, filename) {
       messaging_product: "whatsapp",
       to,
       type: "document",
-      document: { link: pdfLink, filename: filename },
+      document: { link: pdfLink, filename },
     }),
   });
   const data = await response.json();
@@ -115,7 +135,7 @@ async function sendDocument(to, pdfLink, filename) {
   else console.log(`✅ Sent document to ${to}`);
 }
 
-// Fetch secure link
+// Get secure brochure link from Google Apps Script
 async function getSecureBrochureLink(projectId, unitType, userPhone) {
   try {
     const url = PROJECTS[projectId].brochure[unitType] + encodeURIComponent(userPhone);
@@ -124,16 +144,6 @@ async function getSecureBrochureLink(projectId, unitType, userPhone) {
   } catch (error) {
     console.error("❌ Error fetching brochure link:", error);
     return null;
-  }
-}
-
-// Add user to Google Sheet
-async function logUserToSheet(phone, username) {
-  try {
-    await fetch(`${SHEET_WEBHOOK_URL}?phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`);
-    console.log(`📄 User logged: ${phone} - ${username}`);
-  } catch (error) {
-    console.error("❌ Error logging user:", error);
   }
 }
 
@@ -148,7 +158,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-// Webhook receiver
+// WhatsApp webhook receiver
 app.post("/webhook", async (req, res) => {
   const body = req.body;
   if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
@@ -166,9 +176,6 @@ app.post("/webhook", async (req, res) => {
 
     console.log(`📩 Message from ${from} (${userName}): ${text}`);
 
-    // Log user details to Google Sheets
-    await logUserToSheet(from, userName);
-
     if (!sessions[from]) sessions[from] = { step: 1 };
     const step = sessions[from].step;
 
@@ -176,7 +183,7 @@ app.post("/webhook", async (req, res) => {
       const greeting = getGreeting();
       await sendText(
         from,
-        `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ Know about projects\n2️⃣ Contact details\n3️⃣ Download brochures`
+        `Hi ${userName}! 👋 ${greeting}!\nWelcome to Abode Constructions.\nHow may I help you today?\n1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
       );
       sessions[from].step = 2;
     } else if (step === 2) {
@@ -187,11 +194,11 @@ app.post("/webhook", async (req, res) => {
       } else if (reply === "2" || reply.includes("contact")) {
         await sendText(
           from,
-          "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/\nBook a visit: https://abodegroups.com/contact-us/"
+          "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/"
         );
         sessions[from].step = 1;
       } else if (reply === "3" || reply.includes("brochure")) {
-        await sendText(from, "📄 Downloading brochures...");
+        await sendText(from, "📄 Sending brochures...");
         for (const projectId of ["1", "2"]) {
           for (const type of ["2BHK", "3BHK"]) {
             const link = await getSecureBrochureLink(projectId, type, from);
@@ -204,17 +211,17 @@ app.post("/webhook", async (req, res) => {
       }
     } else if (step === 3) {
       if (text === "1") {
-        await sendText(from, PROJECTS["1"].details);
+        await sendText(from, PROJECTS["1"].name);
         await sendDocument(from, await getSecureBrochureLink("1", "2BHK", from), "AbodeAravindham_2BHK.pdf");
         await sendDocument(from, await getSecureBrochureLink("1", "3BHK", from), "AbodeAravindham_3BHK.pdf");
         sessions[from].step = 1;
       } else if (text === "2") {
-        await sendText(from, PROJECTS["2"].details);
+        await sendText(from, PROJECTS["2"].name);
         await sendDocument(from, await getSecureBrochureLink("2", "2BHK", from), "MJLakeview_2BHK.pdf");
         await sendDocument(from, await getSecureBrochureLink("2", "3BHK", from), "MJLakeview_3BHK.pdf");
         sessions[from].step = 1;
       } else {
-        await sendText(from, "❗ Reply with 1 or 2 to get project details.");
+        await sendText(from, "❗ Reply with 1 or 2 to select a project.");
       }
     }
   }
@@ -223,4 +230,5 @@ app.post("/webhook", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => console.log(`✅ Webhook server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
+
