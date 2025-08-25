@@ -46,11 +46,11 @@ const PORT = process.env.PORT || 3000;
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Apps Script Web App URL (POST endpoint)
+// Google Apps Script Web App URL
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
 
-// In-memory session storage
+// Session storage
 const sessions = {};
 
 // Project info
@@ -59,7 +59,6 @@ const PROJECTS = {
   "2": { name: "MJ Lakeview Heights – Ameenpur" },
 };
 
-// Mapping project IDs for API
 const PROJECT_KEYS = {
   "1": { "2BHK": "AbodeAravindham2BHK", "3BHK": "AbodeAravindham3BHK" },
   "2": { "2BHK": "MJLakeview2BHK", "3BHK": "MJLakeview3BHK" },
@@ -80,7 +79,7 @@ app.get("/webhook", (req, res) => {
   else res.sendStatus(403);
 });
 
-// Send WhatsApp text message
+// Send WhatsApp text
 async function sendText(to, text) {
   const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
@@ -92,9 +91,7 @@ async function sendText(to, text) {
       text: { body: text },
     }),
   });
-  if (!res.ok) {
-    console.error("❌ Failed to send text:", await res.json());
-  }
+  if (!res.ok) console.error("❌ Failed to send text:", await res.json());
 }
 
 // Send WhatsApp document
@@ -109,18 +106,16 @@ async function sendDocument(to, pdfLink, filename) {
       document: { link: pdfLink, filename },
     }),
   });
-  if (!res.ok) {
-    console.error("❌ Failed to send document:", await res.json());
-  }
+  if (!res.ok) console.error("❌ Failed to send document:", await res.json());
 }
 
 // Log user action to Google Sheets
-async function logUserAction(phone, username, actionType, projectKey = "", pdfId = "", expiryDate = "") {
+async function logUserAction(phone, username, actionType, projectName = "", pdfId = "", expiryDate = "") {
   try {
     const payload = {
       phoneNumber: phone,
       username,
-      projectName: projectKey,
+      projectName,
       actionType,
       pdfId,
       expiryDate,
@@ -145,13 +140,11 @@ async function getSecureBrochureLink(projectId, unitType, phone, username) {
     const projectKey = PROJECT_KEYS[projectId]?.[unitType];
     if (!projectKey) throw new Error(`Unknown project/unit: ${projectId} ${unitType}`);
 
-    // Log action first
+    // Log action
     await logUserAction(phone, username, "Brochures", projectKey);
 
-    // Generate download link (GET)
-    const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(
-      phone
-    )}&username=${encodeURIComponent(username)}`;
+    // Generate link
+    const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
     const res = await fetch(url);
     const link = await res.text();
 
@@ -163,7 +156,7 @@ async function getSecureBrochureLink(projectId, unitType, phone, username) {
   }
 }
 
-// Greeting based on IST
+// Greeting by IST
 function getGreeting() {
   const now = new Date();
   const hourIST = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
@@ -191,16 +184,14 @@ app.post("/webhook", async (req, res) => {
     if (!sessions[from]) sessions[from] = { step: 1 };
     const step = sessions[from].step;
 
-    // Step 1: Initial greeting
     if (step === 1) {
       await sendText(
         from,
         `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n` +
-          `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
+        `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
       );
       sessions[from].step = 2;
 
-    // Step 2: User selects an option
     } else if (step === 2) {
       const t = text.toLowerCase();
 
@@ -235,10 +226,9 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "❗ Reply with 1, 2, or 3 only.");
       }
 
-    // Step 3: User selects a project
     } else if (step === 3) {
       if (text === "1") {
-        await logUserAction(from, userName, "Projects", "AbodeAravindham2BHK");
+        await logUserAction(from, userName, "Projects", PROJECTS["1"].name);
         await sendText(from, PROJECTS["1"].name);
         for (const type of ["2BHK", "3BHK"]) {
           const link = await getSecureBrochureLink("1", type, from, userName);
@@ -247,7 +237,7 @@ app.post("/webhook", async (req, res) => {
         sessions[from].step = 1;
 
       } else if (text === "2") {
-        await logUserAction(from, userName, "Projects", "MJLakeview2BHK");
+        await logUserAction(from, userName, "Projects", PROJECTS["2"].name);
         await sendText(from, PROJECTS["2"].name);
         for (const type of ["2BHK", "3BHK"]) {
           const link = await getSecureBrochureLink("2", type, from, userName);
@@ -263,6 +253,8 @@ app.post("/webhook", async (req, res) => {
 
   res.sendStatus(200);
 });
+
+app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
 
 // Start server
 app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
