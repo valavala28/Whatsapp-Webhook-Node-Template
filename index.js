@@ -255,6 +255,3 @@ app.post("/webhook", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
-
-// Start server
-app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
