@@ -63,8 +63,14 @@ function getGreeting() {
 // Log user actions to Google Sheet
 async function appendToSheet(data) {
   try {
+    if (!process.env.GOOGLE_CREDENTIALS) {
+      throw new Error("GOOGLE_CREDENTIALS environment variable is missing");
+    }
+
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
     const auth = new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
+      credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
@@ -162,3 +168,4 @@ app.post('/webhook', async (req, res) => {
 // Use PORT from Render or default 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Webhook running on port ${PORT}`));
+
