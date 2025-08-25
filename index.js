@@ -35,223 +35,118 @@ const PROJECTS = {
     },
   },
 };*/
-import express from "express";
-import bodyParser from "body-parser";
-//import fetch from "node-fetch";
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const { google } = require('googleapis');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(bodyParser.json());
 
-// WhatsApp Cloud API credentials
+// WhatsApp Cloud API
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Apps Script Web App URL
-const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
+// Google Sheet
+const SHEET_ID = '1pZrYjEY16A66s9ZQzFcJVoj4-IVP_CctAK3e8ZlQ6y8';
+const SHEET_NAME = 'PDF_SECURITY';
 
-// Session storage
-const sessions = {};
-
-// Project info
-const PROJECTS = {
-  "1": { name: "Abode Aravindam – Tellapur" },
-  "2": { name: "MJ Lakeview Heights – Ameenpur" },
-};
-
-const PROJECT_KEYS = {
-  "1": { "2BHK": "AbodeAravindham2BHK", "3BHK": "AbodeAravindham3BHK" },
-  "2": { "2BHK": "MJLakeview2BHK", "3BHK": "MJLakeview3BHK" },
-};
-
-app.use(bodyParser.json());
-
-// Root
-app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
-
-// Webhook verification
-app.get("/webhook", (req, res) => {
-  const VERIFY_TOKEN = "Abode@14";
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  if (mode && token === VERIFY_TOKEN) res.status(200).send(challenge);
-  else res.sendStatus(403);
-});
-
-// Send WhatsApp text
-async function sendText(to, text) {
-  const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { body: text },
-    }),
-  });
-  if (!res.ok) console.error("❌ Failed to send text:", await res.json());
-}
-
-// Send WhatsApp document
-async function sendDocument(to, pdfLink, filename) {
-  const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "document",
-      document: { link: pdfLink, filename },
-    }),
-  });
-  if (!res.ok) console.error("❌ Failed to send document:", await res.json());
-}
-
-// Log user action to Google Sheets
-async function logUserAction(phone, username, actionType, projectName = "", pdfId = "", expiryDate = "") {
-  try {
-    const payload = {
-      phoneNumber: phone,
-      username,
-      projectName,
-      actionType,
-      pdfId,
-      expiryDate,
-    };
-
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await res.json();
-    console.log(`✅ Logged ${actionType} for ${phone}:`, result);
-  } catch (err) {
-    console.error(`❌ Failed to log action ${actionType} for ${phone}:`, err);
-  }
-}
-
-// Fetch secure brochure link
-async function getSecureBrochureLink(projectId, unitType, phone, username) {
-  try {
-    const projectKey = PROJECT_KEYS[projectId]?.[unitType];
-    if (!projectKey) throw new Error(`Unknown project/unit: ${projectId} ${unitType}`);
-
-    // Log action
-    await logUserAction(phone, username, "Brochures", projectKey);
-
-    // Generate link
-    const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
-    const res = await fetch(url);
-    const link = await res.text();
-
-    if (!link.startsWith("http")) throw new Error(`Invalid link: ${link}`);
-    return link;
-  } catch (err) {
-    console.error("❌ Error fetching secure brochure link:", err);
-    return null;
-  }
-}
-
-// Greeting by IST
+// Greeting based on time
 function getGreeting() {
-  const now = new Date();
-  const hourIST = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
-  if (hourIST < 12) return "Good morning";
-  if (hourIST < 17) return "Good afternoon";
-  return "Good evening";
+  const hour = new Date().getHours();
+  if (hour < 12) return "Morning";
+  if (hour < 17) return "Afternoon";
+  if (hour < 21) return "Evening";
+  return "Day";
 }
 
-// Webhook endpoint
-app.post("/webhook", async (req, res) => {
-  const body = req.body;
-  if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
+// Log user actions to Google Sheet
+async function appendToSheet(data) {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: 'credentials.json', // your service account credentials
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A:E`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [data] },
+  });
+}
 
-  const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
-  const contacts = body.entry?.[0]?.changes?.[0]?.value?.contacts;
-  if (!messages) return res.sendStatus(200);
+// Send WhatsApp message
+async function sendWhatsAppMessage(to, message) {
+  await axios.post(`https://graph.facebook.com/v20.0/${PHONE_ID}/messages`, {
+    messaging_product: "whatsapp",
+    to: to,
+    text: { body: message }
+  }, { headers: { Authorization: `Bearer ${TOKEN}` } });
+}
 
-  for (const msg of messages) {
+app.post('/webhook', async (req, res) => {
+  try {
+    const msg = req.body.entry[0].changes[0].value.messages[0];
     const from = msg.from;
-    const userName = contacts?.[0]?.profile?.name || "User";
-    const text = msg.text?.body?.trim() || "";
+    const name = msg.profile.name;
+    const body = msg.text.body.trim().toLowerCase();
+    const greeting = getGreeting();
+    let reply = '';
 
-    console.log(`📩 Message from ${from} (${userName}): ${text}`);
-
-    if (!sessions[from]) sessions[from] = { step: 1 };
-    const step = sessions[from].step;
-
-    if (step === 1) {
-      await sendText(
-        from,
-        `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n` +
-        `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
-      );
-      sessions[from].step = 2;
-
-    } else if (step === 2) {
-      const t = text.toLowerCase();
-
-      if (t === "1" || t.includes("project")) {
-        await logUserAction(from, userName, "Projects");
-        await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
-        sessions[from].step = 3;
-
-      } else if (t === "2" || t.includes("contact")) {
-        await logUserAction(from, userName, "Contact");
-        await sendText(
-          from,
-          "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/"
-        );
-        sessions[from].step = 1;
-
-      } else if (t === "3" || t.includes("brochure")) {
-        await logUserAction(from, userName, "Brochures");
-        await sendText(from, "📄 Sending brochures...");
-        for (const pid of ["1", "2"]) {
-          for (const type of ["2BHK", "3BHK"]) {
-            const link = await getSecureBrochureLink(pid, type, from, userName);
-            if (link) {
-              const fname = `${PROJECTS[pid].name.replace(/ – .*$/, "").replace(/\s+/g, "")}_${type}.pdf`;
-              await sendDocument(from, link, fname);
-            }
-          }
-        }
-        sessions[from].step = 1;
-
-      } else {
-        await sendText(from, "❗ Reply with 1, 2, or 3 only.");
-      }
-
-    } else if (step === 3) {
-      if (text === "1") {
-        await logUserAction(from, userName, "Projects", PROJECTS["1"].name);
-        await sendText(from, PROJECTS["1"].name);
-        for (const type of ["2BHK", "3BHK"]) {
-          const link = await getSecureBrochureLink("1", type, from, userName);
-          if (link) await sendDocument(from, link, `AbodeAravindham_${type}.pdf`);
-        }
-        sessions[from].step = 1;
-
-      } else if (text === "2") {
-        await logUserAction(from, userName, "Projects", PROJECTS["2"].name);
-        await sendText(from, PROJECTS["2"].name);
-        for (const type of ["2BHK", "3BHK"]) {
-          const link = await getSecureBrochureLink("2", type, from, userName);
-          if (link) await sendDocument(from, link, `MJLakeview_${type}.pdf`);
-        }
-        sessions[from].step = 1;
-
-      } else {
-        await sendText(from, "❗ Reply with 1 or 2 to select a project.");
-      }
+    // Initial Greeting
+    if (body === 'hi' || body === 'hello') {
+      reply = `Hey ${name}! ✨\nGood ${greeting} 🌞\nWelcome to *Abode Constructions* 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`;
+      await appendToSheet([new Date(), from, name, 'Started Chat', '']);
     }
-  }
 
-  res.sendStatus(200);
+    // View Projects
+    else if (body === '1') {
+      reply = `Here are our projects:\n\n1️⃣ *Abode Aravindam* - Tellapur\n2️⃣ *MJ Lakeview Heights* - Ameenpur\n\nReply with the project number to know more.`;
+      await appendToSheet([new Date(), from, name, 'Viewed Projects List', '']);
+    }
+
+    // Abode Aravindam Details
+    else if (body === '1.1' || body.includes('aravindam')) {
+      reply = `🏡 *Abode Aravindam* - Tellapur\n\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
+      await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'Abode Aravindam']);
+    }
+
+    // MJ Lakeview Heights Details
+    else if (body === '1.2' || body.includes('lakeview')) {
+      reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
+      await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'MJ Lakeview Heights']);
+    }
+
+    // Talk to Expert
+    else if (body === '2') {
+      reply = `📞 Talk to an Expert:\n- Call: +91-9876543210\n- Website: https://abodeprojects.com\n- Email: sales@abode.com`;
+      await appendToSheet([new Date(), from, name, 'Requested Expert Contact', '']);
+    }
+
+    // Download Brochure (All)
+    else if (body === '3') {
+      reply = `Here are the brochures 📩\n\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
+      await appendToSheet([new Date(), from, name, 'Downloaded Brochure', 'All']);
+    }
+
+    // Book Site Visit
+    else if (body === '4') {
+      reply = `📅 Book a site visit now:https://abodegroups.com/contact-us/`;
+      await appendToSheet([new Date(), from, name, 'Requested Site Visit', '']);
+    }
+
+    // Unknown
+    else {
+      reply = `❗ Sorry, I didn't understand that. Please reply with the option number (1, 2, 3, or 4).`;
+    }
+
+    await sendWhatsAppMessage(from, reply);
+    res.sendStatus(200);
+
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
 });
 
-app.listen(PORT, () => console.log(`✅ WhatsApp Webhook running on port ${PORT}`));
+app.listen(3000, () => console.log('Webhook running on port 3000'));
