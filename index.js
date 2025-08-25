@@ -45,12 +45,12 @@ const app = express();
 app.use(bodyParser.json());
 
 // WhatsApp Cloud API
-const PHONE_ID = process.env.PHONE_ID || "749224044936223";
-const TOKEN = process.env.TOKEN || "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
 // Google Sheet
-const SHEET_ID = process.env.SHEET_ID || '1pZrYjEY16A66s9ZQzFcJVoj4-IVP_CctAK3e8ZlQ6y8';
-const SHEET_NAME = process.env.SHEET_NAME || 'PDF_SECURITY';
+const SHEET_ID = '1pZrYjEY16A66s9ZQzFcJVoj4-IVP_CctAK3e8ZlQ6y8';
+const SHEET_NAME = 'PDF_SECURITY';
 
 // Greeting based on time
 function getGreeting() {
@@ -64,15 +64,15 @@ function getGreeting() {
 // Log user actions to Google Sheet
 async function appendToSheet(data) {
   try {
-    const credentialsJSON = process.env.GOOGLE_CREDENTIALS;
-    if (!credentialsJSON) throw new Error("Google credentials not found in environment variables");
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 
-    const credentials = JSON.parse(credentialsJSON);
     const auth = new google.auth.GoogleAuth({
-      credentials,
+      credentials: credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
+
     const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
+
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A:E`,
@@ -80,7 +80,7 @@ async function appendToSheet(data) {
       requestBody: { values: [data] },
     });
   } catch (err) {
-    console.error("Error appending to sheet:", err.message);
+    console.error("Error appending to Google Sheet:", err);
   }
 }
 
@@ -93,31 +93,27 @@ async function sendWhatsAppMessage(to, message) {
       text: { body: message }
     }, { headers: { Authorization: `Bearer ${TOKEN}` } });
   } catch (err) {
-    console.error("Error sending WhatsApp message:", err.message);
+    console.error("Error sending WhatsApp message:", err);
   }
 }
 
-// Webhook endpoint
 app.post('/webhook', async (req, res) => {
   try {
-    const entries = req.body.entry;
-    if (!entries || entries.length === 0) return res.sendStatus(200);
+    const msgEntry = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-    const changes = entries[0].changes;
-    if (!changes || changes.length === 0) return res.sendStatus(200);
+    if (!msgEntry) {
+      console.log("No messages found in webhook");
+      return res.sendStatus(200);
+    }
 
-    const messages = changes[0].value.messages;
-    if (!messages || messages.length === 0) return res.sendStatus(200);
-
-    const msg = messages[0];
-    const from = msg.from;
-    const name = msg.profile?.name || 'Customer';
-    const body = msg.text?.body?.trim().toLowerCase() || '';
+    const from = msgEntry.from;
+    const name = msgEntry.profile?.name || 'Customer';
+    const body = msgEntry.text?.body?.trim().toLowerCase() || '';
     const greeting = getGreeting();
     let reply = '';
 
     // Initial Greeting for any message
-    if (!msg._replied) {
+    if (!msgEntry._replied) {
       reply = `Hey ${name}! ✨\nGood ${greeting} 🌞\nWelcome to *Abode Constructions* 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`;
       await appendToSheet([new Date(), from, name, 'Started Chat', body]);
       await sendWhatsAppMessage(from, reply);
@@ -129,26 +125,38 @@ app.post('/webhook', async (req, res) => {
       reply = `Here are our projects:\n\n1️⃣ *Abode Aravindam* - Tellapur\n2️⃣ *MJ Lakeview Heights* - Ameenpur\n\nReply with the project number to know more.`;
       await appendToSheet([new Date(), from, name, 'Viewed Projects List', '']);
     }
+
+    // Abode Aravindam Details
     else if (body === '1.1' || body.includes('aravindam')) {
       reply = `🏡 *Abode Aravindam* - Tellapur\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'Abode Aravindam']);
     }
+
+    // MJ Lakeview Heights Details
     else if (body === '1.2' || body.includes('lakeview')) {
       reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'MJ Lakeview Heights']);
     }
+
+    // Talk to Expert
     else if (body === '2') {
       reply = `📞 Talk to an Expert:\n- Call: +91-9876543210\n- Website: https://abodeprojects.com\n- Email: sales@abode.com`;
       await appendToSheet([new Date(), from, name, 'Requested Expert Contact', '']);
     }
+
+    // Download Brochure (All)
     else if (body === '3') {
       reply = `Here are the brochures 📩\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Downloaded Brochure', 'All']);
     }
+
+    // Book Site Visit
     else if (body === '4') {
       reply = `📅 Book a site visit now: https://abodegroups.com/contact-us/`;
       await appendToSheet([new Date(), from, name, 'Requested Site Visit', '']);
     }
+
+    // Unknown Input
     else {
       reply = `❗ Sorry, I didn't understand that. Please reply with the option number (1, 2, 3, or 4).`;
       await appendToSheet([new Date(), from, name, 'Unknown Input', body]);
@@ -159,11 +167,12 @@ app.post('/webhook', async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error(error);
+    console.error("Webhook Error:", error);
     res.sendStatus(500);
   }
 });
 
-// Run on Render: PORT environment variable
+// Use Render's dynamic port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Webhook running on port ${PORT}`));
+
