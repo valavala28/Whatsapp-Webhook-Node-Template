@@ -62,10 +62,14 @@ function getGreeting() {
 
 // Log user actions to Google Sheet
 async function appendToSheet(data) {
+  // Parse credentials from environment variable
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
   const auth = new google.auth.GoogleAuth({
-    keyFile: 'credentials.json', // your service account credentials
+    credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
+
   const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
@@ -106,37 +110,31 @@ app.post('/webhook', async (req, res) => {
       reply = `Here are our projects:\n\n1️⃣ *Abode Aravindam* - Tellapur\n2️⃣ *MJ Lakeview Heights* - Ameenpur\n\nReply with the project number to know more.`;
       await appendToSheet([new Date(), from, name, 'Viewed Projects List', '']);
     }
-
     // Abode Aravindam Details
     else if (body === '1.1' || body.includes('aravindam')) {
       reply = `🏡 *Abode Aravindam* - Tellapur\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'Abode Aravindam']);
     }
-
     // MJ Lakeview Heights Details
     else if (body === '1.2' || body.includes('lakeview')) {
       reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'MJ Lakeview Heights']);
     }
-
     // Talk to Expert
     else if (body === '2') {
       reply = `📞 Talk to an Expert:\n- Call: +91-9876543210\n- Website: https://abodeprojects.com\n- Email: sales@abode.com`;
       await appendToSheet([new Date(), from, name, 'Requested Expert Contact', '']);
     }
-
     // Download Brochure (All)
     else if (body === '3') {
       reply = `Here are the brochures 📩\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Downloaded Brochure', 'All']);
     }
-
     // Book Site Visit
     else if (body === '4') {
       reply = `📅 Book a site visit now: https://abodegroups.com/contact-us/`;
       await appendToSheet([new Date(), from, name, 'Requested Site Visit', '']);
     }
-
     // Unknown
     else {
       reply = `❗ Sorry, I didn't understand that. Please reply with the option number (1, 2, 3, or 4).`;
@@ -149,12 +147,11 @@ app.post('/webhook', async (req, res) => {
     await sendWhatsAppMessage(from, "🙏 Thank you for interacting with Abode Constructions. We'll get back to you if needed!");
 
     res.sendStatus(200);
-
   } catch (error) {
     console.error(error);
     res.sendStatus(500);
   }
 });
 
-app.listen(3000, () => console.log('Webhook running on port 3000'));
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Webhook running on port ${PORT}`));
