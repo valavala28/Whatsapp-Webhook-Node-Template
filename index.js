@@ -88,32 +88,34 @@ app.post('/webhook', async (req, res) => {
   try {
     const msg = req.body.entry[0].changes[0].value.messages[0];
     const from = msg.from;
-    const name = msg.profile.name;
+    const name = msg.profile?.name || 'Customer';
     const body = msg.text.body.trim().toLowerCase();
     const greeting = getGreeting();
     let reply = '';
 
-    // Initial Greeting
-    if (body === 'hi' || body === 'hello') {
+    // Initial Greeting for any message
+    if (!msg._replied) {
       reply = `Hey ${name}! ✨\nGood ${greeting} 🌞\nWelcome to *Abode Constructions* 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`;
-      await appendToSheet([new Date(), from, name, 'Started Chat', '']);
+      await appendToSheet([new Date(), from, name, 'Started Chat', body]);
+      await sendWhatsAppMessage(from, reply);
+      return res.sendStatus(200);
     }
 
     // View Projects
-    else if (body === '1') {
+    if (body === '1') {
       reply = `Here are our projects:\n\n1️⃣ *Abode Aravindam* - Tellapur\n2️⃣ *MJ Lakeview Heights* - Ameenpur\n\nReply with the project number to know more.`;
       await appendToSheet([new Date(), from, name, 'Viewed Projects List', '']);
     }
 
     // Abode Aravindam Details
     else if (body === '1.1' || body.includes('aravindam')) {
-      reply = `🏡 *Abode Aravindam* - Tellapur\n\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
+      reply = `🏡 *Abode Aravindam* - Tellapur\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'Abode Aravindam']);
     }
 
     // MJ Lakeview Heights Details
     else if (body === '1.2' || body.includes('lakeview')) {
-      reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
+      reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'MJ Lakeview Heights']);
     }
 
@@ -125,22 +127,27 @@ app.post('/webhook', async (req, res) => {
 
     // Download Brochure (All)
     else if (body === '3') {
-      reply = `Here are the brochures 📩\n\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
+      reply = `Here are the brochures 📩\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
       await appendToSheet([new Date(), from, name, 'Downloaded Brochure', 'All']);
     }
 
     // Book Site Visit
     else if (body === '4') {
-      reply = `📅 Book a site visit now:https://abodegroups.com/contact-us/`;
+      reply = `📅 Book a site visit now: https://abodegroups.com/contact-us/`;
       await appendToSheet([new Date(), from, name, 'Requested Site Visit', '']);
     }
 
     // Unknown
     else {
       reply = `❗ Sorry, I didn't understand that. Please reply with the option number (1, 2, 3, or 4).`;
+      await appendToSheet([new Date(), from, name, 'Unknown Input', body]);
     }
 
     await sendWhatsAppMessage(from, reply);
+
+    // Optional: Thank you message after each action
+    await sendWhatsAppMessage(from, "🙏 Thank you for interacting with Abode Constructions. We'll get back to you if needed!");
+
     res.sendStatus(200);
 
   } catch (error) {
@@ -150,3 +157,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.listen(3000, () => console.log('Webhook running on port 3000'));
+
