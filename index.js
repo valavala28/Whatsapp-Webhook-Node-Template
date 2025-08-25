@@ -107,12 +107,24 @@ async function sendDocument(to, pdfLink, filename) {
   else console.log(`✅ Sent document to ${to}`);
 }
 
+// Function to log user action in Google Sheets
+async function logUserAction(phone, username, action, projectKey = "") {
+  try {
+    const url = `${APPS_SCRIPT_URL}?phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&action=${encodeURIComponent(action)}${projectKey ? `&project=${encodeURIComponent(projectKey)}` : ""}`;
+    const res = await fetch(url);
+    const result = await res.text();
+    console.log(`✅ Action logged: ${action} for ${phone} (${result})`);
+  } catch (err) {
+    console.error(`❌ Failed to log action (${action}) for ${phone}:`, err);
+  }
+}
+
 // Fetch secure brochure link from Apps Script
 async function getSecureBrochureLink(projectId, unitType, phone, username) {
   try {
     const projectKey = PROJECT_KEYS[projectId]?.[unitType];
     if (!projectKey) throw new Error(`Unknown project/unit: ${projectId} ${unitType}`);
-
+    await logUserAction(phone, username, "Brochures", projectKey); // Log Brochures action
     const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
     const res = await fetch(url);
     const link = await res.text();
@@ -164,14 +176,17 @@ app.post("/webhook", async (req, res) => {
     } else if (step === 2) {
       const t = text.toLowerCase();
       if (t === "1" || t.includes("project")) {
+        await logUserAction(from, userName, "Projects");
         await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
         sessions[from].step = 3;
 
       } else if (t === "2" || t.includes("contact")) {
+        await logUserAction(from, userName, "Contact");
         await sendText(from, "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/");
         sessions[from].step = 1;
 
       } else if (t === "3" || t.includes("brochure")) {
+        await logUserAction(from, userName, "Brochures");
         await sendText(from, "📄 Sending brochures...");
         for (const pid of ["1", "2"]) {
           for (const type of ["2BHK", "3BHK"]) {
@@ -190,6 +205,7 @@ app.post("/webhook", async (req, res) => {
 
     } else if (step === 3) {
       if (text === "1") {
+        await logUserAction(from, userName, "Projects", "AbodeAravindham2BHK");
         await sendText(from, PROJECTS["1"].name);
         for (const type of ["2BHK", "3BHK"]) {
           const link = await getSecureBrochureLink("1", type, from, userName);
@@ -198,6 +214,7 @@ app.post("/webhook", async (req, res) => {
         sessions[from].step = 1;
 
       } else if (text === "2") {
+        await logUserAction(from, userName, "Projects", "MJLakeview2BHK");
         await sendText(from, PROJECTS["2"].name);
         for (const type of ["2BHK", "3BHK"]) {
           const link = await getSecureBrochureLink("2", type, from, userName);
