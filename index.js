@@ -46,22 +46,23 @@ const PORT = process.env.PORT || 3000;
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Apps Script Web App URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
+// Google Apps Script Web App URL (POST endpoint)
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbx-AyqeNJqTaWWQUrOlGoN42vt4wFon9WugZlQUHgjdX5Hl0Hk_XqZH1sV_CZHPSpKw/exec";
 
-// Sessions
+// In-memory session storage
 const sessions = {};
 
-// Project display names
+// Project info
 const PROJECTS = {
   "1": { name: "Abode Aravindam – Tellapur" },
   "2": { name: "MJ Lakeview Heights – Ameenpur" },
 };
 
-// Mapping to Apps Script FILE_MAP keys
+// Mapping project IDs for API
 const PROJECT_KEYS = {
   "1": { "2BHK": "AbodeAravindham2BHK", "3BHK": "AbodeAravindham3BHK" },
-  "2": { "2BHK": "MJLakeview2BHK", "3BHK": "MJLakeview3BHK" }
+  "2": { "2BHK": "MJLakeview2BHK", "3BHK": "MJLakeview3BHK" },
 };
 
 app.use(bodyParser.json());
@@ -79,18 +80,24 @@ app.get("/webhook", (req, res) => {
   else res.sendStatus(403);
 });
 
-// WhatsApp helpers
+// Send WhatsApp text message
 async function sendText(to, text) {
   const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body: text } }),
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body: text },
+    }),
   });
-  const data = await res.json();
-  if (!res.ok) console.error("❌ Failed to send text:", data);
-  else console.log(`✅ Sent text to ${to}`);
+  if (!res.ok) {
+    console.error("❌ Failed to send text:", await res.json());
+  }
 }
 
+// Send WhatsApp document
 async function sendDocument(to, pdfLink, filename) {
   const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
@@ -99,37 +106,56 @@ async function sendDocument(to, pdfLink, filename) {
       messaging_product: "whatsapp",
       to,
       type: "document",
-      document: { link: pdfLink, filename }
+      document: { link: pdfLink, filename },
     }),
   });
-  const data = await res.json();
-  if (!res.ok) console.error("❌ Failed to send document:", data);
-  else console.log(`✅ Sent document to ${to}`);
-}
-
-// Function to log user action in Google Sheets
-async function logUserAction(phone, username, action, projectKey = "") {
-  try {
-    const url = `${APPS_SCRIPT_URL}?phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}&action=${encodeURIComponent(action)}${projectKey ? `&project=${encodeURIComponent(projectKey)}` : ""}`;
-    const res = await fetch(url);
-    const result = await res.text();
-    console.log(`✅ Action logged: ${action} for ${phone} (${result})`);
-  } catch (err) {
-    console.error(`❌ Failed to log action (${action}) for ${phone}:`, err);
+  if (!res.ok) {
+    console.error("❌ Failed to send document:", await res.json());
   }
 }
 
-// Fetch secure brochure link from Apps Script
+// Log user action to Google Sheets
+async function logUserAction(phone, username, actionType, projectKey = "", pdfId = "", expiryDate = "") {
+  try {
+    const payload = {
+      phoneNumber: phone,
+      username,
+      projectName: projectKey,
+      actionType,
+      pdfId,
+      expiryDate,
+    };
+
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+    console.log(`✅ Logged ${actionType} for ${phone}:`, result);
+  } catch (err) {
+    console.error(`❌ Failed to log action ${actionType} for ${phone}:`, err);
+  }
+}
+
+// Fetch secure brochure link
 async function getSecureBrochureLink(projectId, unitType, phone, username) {
   try {
     const projectKey = PROJECT_KEYS[projectId]?.[unitType];
     if (!projectKey) throw new Error(`Unknown project/unit: ${projectId} ${unitType}`);
-    await logUserAction(phone, username, "Brochures", projectKey); // Log Brochures action
-    const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(phone)}&username=${encodeURIComponent(username)}`;
+
+    // Log action first
+    await logUserAction(phone, username, "Brochures", projectKey);
+
+    // Generate download link (GET)
+    const url = `${APPS_SCRIPT_URL}?project=${encodeURIComponent(projectKey)}&phone=${encodeURIComponent(
+      phone
+    )}&username=${encodeURIComponent(username)}`;
     const res = await fetch(url);
     const link = await res.text();
 
-    if (!link.startsWith("http")) throw new Error(`Apps Script returned non-URL: ${link}`);
+    if (!link.startsWith("http")) throw new Error(`Invalid link: ${link}`);
     return link;
   } catch (err) {
     console.error("❌ Error fetching secure brochure link:", err);
@@ -137,7 +163,7 @@ async function getSecureBrochureLink(projectId, unitType, phone, username) {
   }
 }
 
-// Greeting (IST)
+// Greeting based on IST
 function getGreeting() {
   const now = new Date();
   const hourIST = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
@@ -146,14 +172,13 @@ function getGreeting() {
   return "Good evening";
 }
 
-// Webhook (messages)
+// Webhook endpoint
 app.post("/webhook", async (req, res) => {
   const body = req.body;
   if (body.object !== "whatsapp_business_account") return res.sendStatus(404);
 
-  const val = body.entry?.[0]?.changes?.[0]?.value;
-  const messages = val?.messages;
-  const contacts = val?.contacts;
+  const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
+  const contacts = body.entry?.[0]?.changes?.[0]?.value?.contacts;
   if (!messages) return res.sendStatus(200);
 
   for (const msg of messages) {
@@ -166,15 +191,19 @@ app.post("/webhook", async (req, res) => {
     if (!sessions[from]) sessions[from] = { step: 1 };
     const step = sessions[from].step;
 
+    // Step 1: Initial greeting
     if (step === 1) {
-      await sendText(from,
+      await sendText(
+        from,
         `Hi ${userName}! 👋 ${getGreeting()}!\nWelcome to Abode Constructions.\n` +
-        `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
+          `1️⃣ Projects\n2️⃣ Contact\n3️⃣ Brochures`
       );
       sessions[from].step = 2;
 
+    // Step 2: User selects an option
     } else if (step === 2) {
       const t = text.toLowerCase();
+
       if (t === "1" || t.includes("project")) {
         await logUserAction(from, userName, "Projects");
         await sendText(from, "Please choose a project:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights");
@@ -182,7 +211,10 @@ app.post("/webhook", async (req, res) => {
 
       } else if (t === "2" || t.includes("contact")) {
         await logUserAction(from, userName, "Contact");
-        await sendText(from, "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/");
+        await sendText(
+          from,
+          "📞 +91-8008312211\n📧 abodegroups3@gmail.com\n🌐 https://abodegroups.com/"
+        );
         sessions[from].step = 1;
 
       } else if (t === "3" || t.includes("brochure")) {
@@ -203,6 +235,7 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "❗ Reply with 1, 2, or 3 only.");
       }
 
+    // Step 3: User selects a project
     } else if (step === 3) {
       if (text === "1") {
         await logUserAction(from, userName, "Projects", "AbodeAravindham2BHK");
