@@ -52,20 +52,36 @@ const GOOGLE_SCRIPT_URL =
 // In-memory session tracker
 const sessions = {};
 
-// Project details
+// Projects details
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
-    details: `🏢 *Abode Aravindam* – Tellapur
-📏 5.27 acres | 567 2 & 3 BHK apartments
-✨ Why Choose Us?
-• Spacious layouts with natural light & ventilation
-• Prime location near schools, hospitals & shopping
-Exclusive Amenities:
-• Private Theatre
-• Stylish Club House & Banquet Hall
-• State-of-the-art Gym & Landscaped Trails
-More info: https://abodegroups.com/projects/aravindam/`,
+    details: `🏢 *Abode Aravindam – Tellapur*\n
+📌 Project Overview:
+Welcome to Abode Aravindam – a premium gated community spanning 5.27 acres. 
+This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, blending contemporary luxury with serene living.
+
+🌟 Why Choose Abode Aravindam?
+• Spacious layouts with abundant natural light & ventilation
+• Prime location near schools, hospitals, shopping & transport hubs
+
+🏡 Exclusive Amenities:
+• Private Theatre for immersive entertainment
+• Stylish Club House & Banquet Hall for gatherings
+• State-of-the-art Gym & Landscaped Walking Trails
+
+🛋 Unit Plans:
+• Spacious Layouts – Efficient interiors for seamless movement
+• Ample Natural Light & Ventilation – Large windows & open balconies
+• Smart Design – Living, dining & kitchen areas for an effortless lifestyle
+• Premium Finishes – Elegant fittings & aesthetics
+
+📍 Location: Tellapur
+📐 Property Area: 5.27 Acres
+🆔 RERA No: P01100005069
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
+💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
       "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
       "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
@@ -73,13 +89,29 @@ More info: https://abodegroups.com/projects/aravindam/`,
   },
   "2": {
     name: "MJ Lakeview Heights – Ameenpur",
-    details: `🏢 *MJ Lakeview Heights* – Ameenpur
-📏 1.5 Acres | 174 2 & 3 BHK Flats
-✨ Why Choose Us?
+    details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
+📌 Project Overview:
+Discover a life where the calm of nature meets city convenience. 
+An exclusive gated community beside Pedda Cheruvu Lake.
+Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
+
+🌟 Why Choose MJ Lakeview Heights?
 • Serene lake-view location
-• Thoughtfully designed layouts
-• Close to schools, hospitals & shopping
-More info: https://abodegroups.com/projects/mj-lakeview-heights/`,
+• Close to top schools, hospitals, shopping & transit routes
+• Elegant and spacious homes designed for comfort
+
+🏡 Amenities & Unit Plans:
+• First Floor – Banquet hall & guest rooms
+• Second Floor – Yoga/meditation area, conference room, indoor games
+• 18 Units Per Floor – Balanced community with privacy
+• Elegant Clubhouse – Recreation & community bonding
+
+📍 Location: Ameenpur
+📐 Property Area: 1.5 Acres
+🆔 RERA No: P01100009015
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
+💰 Starting From: ₹82 Lakhs Onwards`,
     brochure: {
       "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
       "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
