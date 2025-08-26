@@ -243,9 +243,6 @@ const TOKEN = process.env.TOKEN || "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C2
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
 
 
-// Google Apps Script Web App URL
-const GOOGLE_SCRIPT_URL = process.env.SCRIPT_URL;
-
 // Project details
 const PROJECTS = {
   "1": {
