@@ -45,7 +45,6 @@ function getGreeting() {
   if (hour < 9) return "Good Evening";
   return "Good Evening";
 }*/
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -53,6 +52,10 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Middleware to parse JSON and URL-encoded data
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
@@ -197,7 +200,15 @@ app.get("/webhook", (req, res) => {
 // Webhook receiver
 app.post("/webhook", async (req, res) => {
   try {
-    const entry = req.body.entry?.[0]?.changes?.[0]?.value;
+    const body = req.body;
+    console.log("Incoming webhook:", JSON.stringify(body, null, 2));
+
+    if (!body.entry || !body.entry[0]?.changes) {
+      console.warn("⚠️ Invalid webhook structure");
+      return res.sendStatus(200);
+    }
+
+    const entry = body.entry[0].changes[0].value;
     const msg = entry?.messages?.[0];
     const contact = entry?.contacts?.[0];
 
