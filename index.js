@@ -34,10 +34,23 @@ const PROJECTS = {
       "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
     },
   },
-};*/
+};
+function getGreeting() {
+  const now = new Date();
+  let hour = now.getHours();
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  if (ampm === "AM") return "Good Morning";
+  if (hour < 5) return "Good Afternoon";
+  if (hour < 9) return "Good Evening";
+  return "Good Evening";
+}*/
+
 const express = require("express");
 const bodyParser = require("body-parser");
-//const fetch = require("node-fetch");
+const axios = require("axios");
+require("dotenv").config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -49,10 +62,7 @@ const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWS
 const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
 
-// In-memory session tracker
-const sessions = {};
-
-// Projects details
+// Project details
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -119,8 +129,53 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
   },
 };
 
-// Middleware
-app.use(bodyParser.json());
+// Utility: Send WhatsApp text
+async function sendText(to, text) {
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        text: { body: text },
+      },
+      {
+        headers: { Authorization: `Bearer ${TOKEN}` },
+      }
+    );
+    console.log(`✅ Message sent to ${to}`);
+  } catch (error) {
+    console.error("❌ Failed to send message:", error.response?.data || error.message);
+  }
+}
+
+// Utility: Log user interaction to Google Sheets
+async function logAction(phone, name, action, details = "") {
+  try {
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      timestamp: new Date().toLocaleString("en-US", { hour12: true }),
+      userPhone: phone,
+      customerName: name,
+      action,
+      details,
+    });
+    console.log(`✅ Action logged: ${action}`);
+  } catch (error) {
+    console.error("❌ Logging failed:", error.message);
+  }
+}
+
+// Utility: Get greeting in 12-hour format
+function getGreeting() {
+  const now = new Date();
+  let hour = now.getHours();
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  if (ampm === "AM") return "Good Morning";
+  if (hour < 5) return "Good Afternoon";
+  if (hour < 9) return "Good Evening";
+  return "Good Evening";
+}
 
 // Root route
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
@@ -139,169 +194,58 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Send WhatsApp message
-async function sendText(to, text) {
-  try {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          type: "text",
-          text: { body: text },
-        }),
-      }
-    );
-    const data = await response.json();
-    if (!response.ok) console.error("❌ Send failed:", data);
-    else console.log(`✅ Message sent to ${to}`);
-  } catch (error) {
-    console.error("❌ Error sending message:", error);
-  }
-}
-
-// Log user action to Google Sheets
-async function logUserAction(userPhone, customerName, action, details) {
-  try {
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        timestamp: new Date().toLocaleString(),
-        userPhone,
-        customerName,
-        action,
-        details,
-      }),
-    });
-  } catch (error) {
-    console.error("❌ Logging failed:", error);
-  }
-}
-
-// Get 12-hour format greeting
-function getGreeting() {
-  const now = new Date();
-  let hour = now.getHours();
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12;
-  if (ampm === "AM") return "Good Morning";
-  if (hour < 5) return "Good Afternoon";
-  if (hour < 9) return "Good Evening";
-  return "Good Evening";
-}
-
 // Webhook receiver
 app.post("/webhook", async (req, res) => {
-  const body = req.body;
-  if (body.object === "whatsapp_business_account") {
-    const changes = body.entry?.[0]?.changes?.[0];
-    if (changes?.value?.messages) {
-      const messages = changes.value.messages;
-      const contacts = changes.value.contacts;
+  try {
+    const entry = req.body.entry?.[0]?.changes?.[0]?.value;
+    const msg = entry?.messages?.[0];
+    const contact = entry?.contacts?.[0];
 
-      for (const msg of messages) {
-        const from = msg.from;
-        const text = msg.text?.body?.trim() || "";
-        const userName = contacts?.[0]?.profile?.name || "there";
+    if (!msg) return res.sendStatus(200);
 
-        if (!sessions[from]) sessions[from] = { step: 1 };
-        const step = sessions[from].step;
+    const from = msg.from;
+    const text = msg.text?.body?.trim().toLowerCase() || "";
+    const name = contact?.profile?.name || "Customer";
 
-        if (step === 1) {
-          await sendText(
-            from,
-            `Hey ${userName}! ✨\n${getGreeting()} 👋\nWelcome to *Abode Constructions*. 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`
-          );
-          await logUserAction(from, userName, "Started Chat", "");
-          sessions[from].step = 2;
-        } else if (step === 2) {
-          if (text === "1") {
-            await sendText(
-              from,
-              "Available Projects:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights"
-            );
-            await logUserAction(from, userName, "Viewed Projects List", "");
-            sessions[from].step = 3;
-          } else if (text === "2") {
-            await sendText(
-              from,
-              "📞 Call: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com\n📅 Book Site Visit: https://abodegroups.com/contact-us/"
-            );
-            await logUserAction(from, userName, "Requested Expert Contact", "");
-            await sendText(
-              from,
-              "🙏 Thank you for contacting Abode Constructions!"
-            );
-            sessions[from].step = 1;
-          } else if (text === "3") {
-            await sendText(
-              from,
-              `Download Brochures:\nAbode Aravindam 2BHK: ${PROJECTS["1"].brochure["2BHK"]}\nAbode Aravindam 3BHK: ${PROJECTS["1"].brochure["3BHK"]}\nMJ Lakeview 2BHK: ${PROJECTS["2"].brochure["2BHK"]}\nMJ Lakeview 3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
-            );
-            await logUserAction(from, userName, "Downloaded Brochure", "All");
-            await sendText(
-              from,
-              "🙏 Thank you for contacting Abode Constructions!"
-            );
-            sessions[from].step = 1;
-          } else if (text === "4") {
-            await sendText(
-              from,
-              "📅 Book a Site Visit here: https://abodegroups.com/contact-us/"
-            );
-            await logUserAction(from, userName, "Booked Site Visit", "");
-            await sendText(
-              from,
-              "🙏 Thank you for contacting Abode Constructions!"
-            );
-            sessions[from].step = 1;
-          } else {
-            await sendText(from, "❗ Please reply with 1, 2, 3, or 4 only.");
-          }
-        } else if (step === 3) {
-          if (text === "1") {
-            await sendText(
-              from,
-              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
-            );
-            await logUserAction(
-              from,
-              userName,
-              "Viewed Project Details",
-              "Abode Aravindam"
-            );
-          } else if (text === "2") {
-            await sendText(
-              from,
-              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
-            );
-            await logUserAction(
-              from,
-              userName,
-              "Viewed Project Details",
-              "MJ Lakeview Heights"
-            );
-          } else {
-            await sendText(from, "❗ Reply with 1 or 2 for project details.");
-          }
-          await sendText(
-            from,
-            "🙏 Thank you for contacting Abode Constructions!"
-          );
-          sessions[from].step = 1;
-        }
-      }
+    let reply = "";
+    let action = "";
+
+    if (/hi|hello|hey/.test(text)) {
+      reply = `${getGreeting()} ${name}! ✨\nWelcome to *Abode Constructions*. 🏡\n\nSelect an option 👇\n1️⃣  View Projects\n2️⃣  Talk to Expert\n3️⃣  Download Brochure\n4️⃣  Book a Site Visit`;
+      action = "Started Chat";
+    } else if (text === "1" || text.includes("project")) {
+      reply = `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`;
+      action = "Viewed Projects List";
+    } else if (text === "2" || text.includes("expert")) {
+      reply = `📞 Call: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com`;
+      action = "Requested Expert Contact";
+    } else if (text === "3" || text.includes("brochure")) {
+      reply = `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+        .map(
+          ([key, p]) =>
+            `${p.name}:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`
+        )
+        .join("\n\n")}`;
+      action = "Downloaded Brochure";
+    } else if (text === "4" || text.includes("visit")) {
+      reply = "📅 Book your site visit here: https://abodegroups.com/contact-us/";
+      action = "Booked Site Visit";
+    } else if (PROJECTS[text]) {
+      const p = PROJECTS[text];
+      reply = `${p.details}\n\n📄 Brochures:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`;
+      action = `Viewed Project Details: ${p.name}`;
+    } else {
+      reply = `Sorry, I didn't get that. Please reply with 1, 2, 3, or 4.`;
+      action = "Unknown Input";
     }
+
+    await sendText(from, reply);
+    await logAction(from, name, action, text);
+
     res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
   }
 });
 
