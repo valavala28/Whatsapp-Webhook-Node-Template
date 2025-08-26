@@ -1,40 +1,4 @@
-/* Project details and brochure mapping
-const PROJECTS = {
-  "1": {
-    name: "Abode Aravindam – Tellapur",
-    details: `🏢 *Abode Aravindam* – Tellapur
-📏 5.27 acres | 567 2 & 3 BHK apartments
-✨ Why Choose Us?
-• Spacious, airy layouts with natural light
-• Prime location near schools, hospitals & shopping
-• Lifestyle amenities: Private Theatre, Club House, Gym, Walking Trails
-🏠 Unit Plans
-• Thoughtfully designed 2 & 3 BHK apartments
-• Premium finishes for modern comfort
-🌐 More info: https://abodegroups.com/projects/aravindam/`,
-    brochure: {
-      "2BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham2BHK&phone=`,
-      "3BHK": `${APPS_SCRIPT_URL}?project=AbodeAravindham3BHK&phone=`,
-    },
-  },
-  "2": {
-    name: "MJ Lakeview Heights – Ameenpur",
-    details: `🏢 *MJ Lakeview Heights* – Ameenpur
-📏 1.5 Acres | 174 2 & 3 BHK Flats
-✨ Why Choose Us?
-• Serene lake-view location
-• Thoughtfully designed 2 & 3 BHK homes
-• Close to schools, hospitals & shopping
-• Smart layouts with natural light & ventilation
-🏠 Unit Plans
-• Elegant living, dining & kitchen areas
-🌐 More info: https://abodegroups.com/projects/mj-lakeview-heights/`,
-    brochure: {
-      "2BHK": `${APPS_SCRIPT_URL}?project=MJLakeview2BHK&phone=`,
-      "3BHK": `${APPS_SCRIPT_URL}?project=MJLakeview3BHK&phone=`,
-    },
-  },
-};
+/* 
 function getGreeting() {
   const now = new Date();
   let hour = now.getHours();
@@ -44,7 +8,7 @@ function getGreeting() {
   if (hour < 5) return "Good Afternoon";
   if (hour < 9) return "Good Evening";
   return "Good Evening";
-}*/
+}
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -262,4 +226,195 @@ app.post("/webhook", async (req, res) => {
 
 app.listen(PORT, () =>
   console.log(`✅ Webhook server running on http://localhost:${PORT}`)
-);
+);*/
+
+
+import express from "express";
+import bodyParser from "body-parser";
+import axios from "axios";
+
+const app = express();
+app.use(bodyParser.json());
+
+const VERIFY_TOKEN = "your_verify_token_here";
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
+
+// Project information
+// Project details
+const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    details: `🏢 *Abode Aravindam – Tellapur*\n
+📌 Project Overview:
+Welcome to Abode Aravindam – a premium gated community spanning 5.27 acres. 
+This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, blending contemporary luxury with serene living.
+
+🌟 Why Choose Abode Aravindam?
+• Spacious layouts with abundant natural light & ventilation
+• Prime location near schools, hospitals, shopping & transport hubs
+
+🏡 Exclusive Amenities:
+• Private Theatre for immersive entertainment
+• Stylish Club House & Banquet Hall for gatherings
+• State-of-the-art Gym & Landscaped Walking Trails
+
+🛋 Unit Plans:
+• Spacious Layouts – Efficient interiors for seamless movement
+• Ample Natural Light & Ventilation – Large windows & open balconies
+• Smart Design – Living, dining & kitchen areas for an effortless lifestyle
+• Premium Finishes – Elegant fittings & aesthetics
+
+📍 Location: Tellapur
+📐 Property Area: 5.27 Acres
+🆔 RERA No: P01100005069
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
+💰 Starting From: ₹92 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
+📌 Project Overview:
+Discover a life where the calm of nature meets city convenience. 
+An exclusive gated community beside Pedda Cheruvu Lake.
+Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
+
+🌟 Why Choose MJ Lakeview Heights?
+• Serene lake-view location
+• Close to top schools, hospitals, shopping & transit routes
+• Elegant and spacious homes designed for comfort
+
+🏡 Amenities & Unit Plans:
+• First Floor – Banquet hall & guest rooms
+• Second Floor – Yoga/meditation area, conference room, indoor games
+• 18 Units Per Floor – Balanced community with privacy
+• Elegant Clubhouse – Recreation & community bonding
+
+📍 Location: Ameenpur
+📐 Property Area: 1.5 Acres
+🆔 RERA No: P01100009015
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
+💰 Starting From: ₹82 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+    },
+  },
+};
+
+// In-memory user session state
+const userStates = {};
+
+// Verify webhook with WhatsApp
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("Webhook verified successfully!");
+    res.status(200).send(challenge);
+  } else {
+    res.status(403).send("Verification failed.");
+  }
+});
+
+// Utility: Get greeting in 12-hour format
+function getGreeting() {
+  const now = new Date();
+  let hour = now.getHours();
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  if (ampm === "AM") return "Good Morning";
+  if (hour < 5) return "Good Afternoon";
+  if (hour < 9) return "Good Evening";
+  return "Good Evening";
+}
+
+// Handle incoming messages
+app.post("/webhook", async (req, res) => {
+  try {
+    const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+
+    if (message) {
+      const from = message.from;
+      const userMessage = message.text?.body?.trim()?.toLowerCase();
+
+      if (!userStates[from] || !userStates[from].active) {
+        userStates[from] = { active: true };
+        await sendMessage(
+          from,
+          `👋 Hi ${getGreeting()} ${name}! Welcome to *Abode Constructions*.\nType:\n1️⃣ View Project Details\n2️⃣ Pricing Info\n3️⃣ Booking Process\n4️⃣ Contact Us\n\nType 'stop' anytime to end.`
+        );
+      } else if (userMessage === "stop") {
+        userStates[from].active = false;
+        await sendMessage(from, "🙏 Thank you for connecting with Abode Projects. Have a great day!");
+      } else {
+        await handleUserMessage(from, userMessage);
+      }
+
+      // Log interaction to Google Apps Script
+      await logToGoogleSheets(from, userMessage);
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+// Process user messages
+async function handleUserMessage(user, msg) {
+  if (PROJECTS[msg]) {
+    await sendMessage(user, PROJECTS[msg].details);
+  } else if (msg.includes("project")) {
+    await sendMessage(user, "📂 Type 1 or 2 to view details of available projects.");
+  } else if (msg.includes("price")) {
+    await sendMessage(user, "💰 Price range:\n• Abode Aravindam: ₹92L+\n• MJ Lakeview Heights: ₹82L+");
+  } else if (msg.includes("book")) {
+    await sendMessage(user, "📝 Booking process: Provide your details and pay the token to reserve your flat.");
+  } else if (msg.includes("contact")) {
+    await sendMessage(user, "📞 Contact our sales expert: +91-9876543210");
+  } else {
+    await sendMessage(user, "❓ Sorry, I didn't understand that. Type a number (1-4) or keyword like 'price' or 'contact'.");
+  }
+}
+
+// Send message using WhatsApp API
+async function sendMessage(to, message) {
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v17.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body: message },
+      },
+      { headers: { Authorization: `Bearer ${TOKEN}` } }
+    );
+    console.log(`📤 Sent to ${to}: ${message}`);
+  } catch (error) {
+    console.error("❌ Failed to send message:", error.response?.data || error.message);
+  }
+}
+
+// Log user interaction to Google Sheets
+async function logToGoogleSheets(user, message) {
+  try {
+    await axios.post(GOOGLE_SCRIPT_URL, { user, message });
+    console.log(`📝 Logged: ${user} - ${message}`);
+  } catch (err) {
+    console.error("❌ Failed to log to Google Sheets:", err.message);
+  }
+}
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
