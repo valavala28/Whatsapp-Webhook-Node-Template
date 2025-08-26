@@ -229,6 +229,7 @@ app.listen(PORT, () =>
 );*/
 
 
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -237,7 +238,7 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware to parse JSON and URL-encoded data
+// Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -246,9 +247,9 @@ const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
 // Google Apps Script Web App URL
-const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
-// Project details
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
+
+// Project data
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -315,7 +316,7 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
   },
 };
 
-// Session store to track users
+// Session storage
 const sessions = {};
 
 // Utility: Send WhatsApp text
@@ -323,14 +324,8 @@ async function sendText(to, text) {
   try {
     await axios.post(
       `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to,
-        text: { body: text },
-      },
-      {
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      }
+      { messaging_product: "whatsapp", to, text: { body: text } },
+      { headers: { Authorization: `Bearer ${TOKEN}` } }
     );
     console.log(`✅ Message sent to ${to}`);
   } catch (error) {
@@ -338,7 +333,7 @@ async function sendText(to, text) {
   }
 }
 
-// Utility: Log user interaction
+// Utility: Log interactions
 async function logAction(phone, name, action, details = "") {
   try {
     if (!GOOGLE_SCRIPT_URL) return;
@@ -355,7 +350,7 @@ async function logAction(phone, name, action, details = "") {
   }
 }
 
-// Utility: Get greeting
+// Utility: Greeting based on time
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good Morning";
@@ -365,7 +360,9 @@ function getGreeting() {
 
 // Reset inactivity timer
 function resetTimer(phone, name) {
-  if (sessions[phone]?.timer) clearTimeout(sessions[phone].timer);
+  if (!sessions[phone]) sessions[phone] = { name };
+  if (sessions[phone].timer) clearTimeout(sessions[phone].timer);
+
   sessions[phone].timer = setTimeout(async () => {
     await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
     delete sessions[phone];
@@ -381,15 +378,15 @@ app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
+
   if (mode && token === VERIFY_TOKEN) {
     console.log("WEBHOOK_VERIFIED");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
+    return res.status(200).send(challenge);
   }
+  res.sendStatus(403);
 });
 
-// Webhook receiver
+// Webhook handler
 app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
@@ -405,9 +402,7 @@ app.post("/webhook", async (req, res) => {
     const text = msg.text?.body?.trim().toLowerCase() || "";
     const name = contact?.profile?.name || "Customer";
 
-    resetTimer(from, name);
-
-    // If first message, send main menu
+    // Ensure session is initialized first
     if (!sessions[from]) {
       sessions[from] = { name };
       await sendText(
@@ -418,7 +413,9 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    // Handle menu options
+    // Reset inactivity timer
+    resetTimer(from, name);
+
     let reply = "";
     let action = "";
 
@@ -430,7 +427,7 @@ app.post("/webhook", async (req, res) => {
       action = "Requested Expert Contact";
     } else if (text === "3" || text.includes("brochure")) {
       reply = `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-        .map(([key, p]) => `${p.name}:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`)
+        .map(([_, p]) => `${p.name}:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`)
         .join("\n\n")}`;
       action = "Requested Brochure";
     } else if (text === "4" || text.includes("visit")) {
