@@ -35,137 +35,244 @@ const PROJECTS = {
     },
   },
 };*/
-const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
-const { google } = require('googleapis');
-
+const express = require("express");
+const bodyParser = require("body-parser");
+const fetch = require("node-fetch");
 const app = express();
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 3000;
 
-// WhatsApp Cloud API
+// WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 
-// Google Sheet
-const SHEET_ID = '1pZrYjEY16A66s9ZQzFcJVoj4-IVP_CctAK3e8ZlQ6y8';
-const SHEET_NAME = 'PDF_SECURITY';
+// Google Apps Script Web App URL
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
 
-// Greeting based on time
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Morning";
-  if (hour < 17) return "Afternoon";
-  if (hour < 21) return "Evening";
-  return "Day";
-}
+// In-memory session tracker
+const sessions = {};
 
-// Log user actions to Google Sheet
-async function appendToSheet(data) {
-  try {
-    if (!process.env.GOOGLE_CREDENTIALS) {
-      throw new Error("GOOGLE_CREDENTIALS environment variable is missing");
-    }
+// Project details
+const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    details: `🏢 *Abode Aravindam* – Tellapur
+📏 5.27 acres | 567 2 & 3 BHK apartments
+✨ Why Choose Us?
+• Spacious layouts with natural light & ventilation
+• Prime location near schools, hospitals & shopping
+Exclusive Amenities:
+• Private Theatre
+• Stylish Club House & Banquet Hall
+• State-of-the-art Gym & Landscaped Trails
+More info: https://abodegroups.com/projects/aravindam/`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    details: `🏢 *MJ Lakeview Heights* – Ameenpur
+📏 1.5 Acres | 174 2 & 3 BHK Flats
+✨ Why Choose Us?
+• Serene lake-view location
+• Thoughtfully designed layouts
+• Close to schools, hospitals & shopping
+More info: https://abodegroups.com/projects/mj-lakeview-heights/`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+    },
+  },
+};
 
-    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+// Middleware
+app.use(bodyParser.json());
 
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
+// Root route
+app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
 
-    const sheets = google.sheets({ version: 'v4', auth: await auth.getClient() });
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A:E`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [data] },
-    });
-  } catch (err) {
-    console.error('Error appending to sheet:', err.message);
-  }
-}
-
-// Send WhatsApp message
-async function sendWhatsAppMessage(to, message) {
-  try {
-    await axios.post(
-      `https://graph.facebook.com/v20.0/${PHONE_ID}/messages`,
-      { messaging_product: "whatsapp", to, text: { body: message } },
-      { headers: { Authorization: `Bearer ${TOKEN}` } }
-    );
-  } catch (err) {
-    console.error('Error sending WhatsApp message:', err.message);
-  }
-}
-
-app.post('/webhook', async (req, res) => {
-  try {
-    const entry = req.body.entry?.[0]?.changes?.[0]?.value;
-    const msg = entry?.messages?.[0];
-
-    if (!msg) return res.sendStatus(200); // no messages
-
-    const from = msg.from;
-    const name = msg.profile?.name || 'Customer';
-    const body = msg.text?.body?.trim().toLowerCase() || '';
-    const greeting = getGreeting();
-    let reply = '';
-
-    // Initial Greeting for any message
-    if (!msg._replied) {
-      reply = `Hey ${name}! ✨\nGood ${greeting} 🌞\nWelcome to *Abode Constructions* 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`;
-      await appendToSheet([new Date(), from, name, 'Started Chat', body]);
-      await sendWhatsAppMessage(from, reply);
-      return res.sendStatus(200);
-    }
-
-    // View Projects
-    if (body === '1') {
-      reply = `Here are our projects:\n\n1️⃣ *Abode Aravindam* - Tellapur\n2️⃣ *MJ Lakeview Heights* - Ameenpur\n\nReply with the project number to know more.`;
-      await appendToSheet([new Date(), from, name, 'Viewed Projects List', '']);
-    }
-    // Abode Aravindam Details
-    else if (body === '1.1' || body.includes('aravindam')) {
-      reply = `🏡 *Abode Aravindam* - Tellapur\n- Location: Tellapur\n- Area: 5.27 Acres\n- RERA No: P01100005069\n- Floors & Units: G+9 | 2 & 3 BHK | 567 Flats\n- Starting From: ₹92 Lakhs Onwards\n✨ Highlights:\n- Spacious layouts, natural light & ventilation\n- Private Theatre, Clubhouse, Banquet Hall, Gym, Landscaped Trails\n- Premium finishes & thoughtful interiors\n📄 Download Brochure: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing`;
-      await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'Abode Aravindam']);
-    }
-    // MJ Lakeview Heights Details
-    else if (body === '1.2' || body.includes('lakeview')) {
-      reply = `🌊 *MJ Lakeview Heights* - Ameenpur\n- Location: Ameenpur\n- Area: 1.5 Acres\n- RERA No: P01100009015\n- Floors & Units: G+10 | 2 & 3 BHK | 174 Flats\n- Starting From: ₹82 Lakhs Onwards\n🏡 Highlights:\n- Lake-side gated community\n- Spacious, naturally lit 2 & 3 BHK apartments\n- Clubhouse, Indoor Games, Yoga & Meditation\n- 18 units per floor for privacy and balance\n- Close to schools, hospitals, shopping, and transit\n📄 Download Brochure: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing`;
-      await appendToSheet([new Date(), from, name, 'Viewed Project Details', 'MJ Lakeview Heights']);
-    }
-    // Talk to Expert
-    else if (body === '2') {
-      reply = `📞 Talk to an Expert:\n- Call: +91-9876543210\n- Website: https://abodeprojects.com\n- Email: sales@abode.com`;
-      await appendToSheet([new Date(), from, name, 'Requested Expert Contact', '']);
-    }
-    // Download Brochure (All)
-    else if (body === '3') {
-      reply = `Here are the brochures 📩\n- Abode Aravindam 2BHK: https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing\n- Abode Aravindam 3BHK: https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing\n- MJ Lakeview 2BHK: https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing\n- MJ Lakeview 3BHK: https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing`;
-      await appendToSheet([new Date(), from, name, 'Downloaded Brochure', 'All']);
-    }
-    // Book Site Visit
-    else if (body === '4') {
-      reply = `📅 Book a site visit now: https://abodegroups.com/contact-us/`;
-      await appendToSheet([new Date(), from, name, 'Requested Site Visit', '']);
-    }
-    // Unknown
-    else {
-      reply = `❗ Sorry, I didn't understand that. Please reply with the option number (1, 2, 3, or 4).`;
-      await appendToSheet([new Date(), from, name, 'Unknown Input', body]);
-    }
-
-    await sendWhatsAppMessage(from, reply);
-    await sendWhatsAppMessage(from, "🙏 Thank you for interacting with Abode Constructions. We'll get back to you if needed!");
-    res.sendStatus(200);
-  } catch (error) {
-    console.error('Webhook error:', error.message);
-    res.sendStatus(500);
+// Webhook verification
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = "Abode@14";
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("WEBHOOK_VERIFIED");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
   }
 });
 
-// Use PORT from Render or default 3000
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Webhook running on port ${PORT}`));
+// Send WhatsApp message
+async function sendText(to, text) {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "text",
+          text: { body: text },
+        }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) console.error("❌ Send failed:", data);
+    else console.log(`✅ Message sent to ${to}`);
+  } catch (error) {
+    console.error("❌ Error sending message:", error);
+  }
+}
 
+// Log user action to Google Sheets
+async function logUserAction(userPhone, customerName, action, details) {
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timestamp: new Date().toLocaleString(),
+        userPhone,
+        customerName,
+        action,
+        details,
+      }),
+    });
+  } catch (error) {
+    console.error("❌ Logging failed:", error);
+  }
+}
+
+// Get 12-hour format greeting
+function getGreeting() {
+  const now = new Date();
+  let hour = now.getHours();
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  if (ampm === "AM") return "Good Morning";
+  if (hour < 5) return "Good Afternoon";
+  if (hour < 9) return "Good Evening";
+  return "Good Evening";
+}
+
+// Webhook receiver
+app.post("/webhook", async (req, res) => {
+  const body = req.body;
+  if (body.object === "whatsapp_business_account") {
+    const changes = body.entry?.[0]?.changes?.[0];
+    if (changes?.value?.messages) {
+      const messages = changes.value.messages;
+      const contacts = changes.value.contacts;
+
+      for (const msg of messages) {
+        const from = msg.from;
+        const text = msg.text?.body?.trim() || "";
+        const userName = contacts?.[0]?.profile?.name || "there";
+
+        if (!sessions[from]) sessions[from] = { step: 1 };
+        const step = sessions[from].step;
+
+        if (step === 1) {
+          await sendText(
+            from,
+            `Hey ${userName}! ✨\n${getGreeting()} 👋\nWelcome to *Abode Constructions*. 🏡\n\nSelect an option below 👇\n1️⃣ View Our Projects\n2️⃣ Talk to an Expert 🧑‍💼\n3️⃣ Download Brochure 📩\n4️⃣ Book a Site Visit 📅`
+          );
+          await logUserAction(from, userName, "Started Chat", "");
+          sessions[from].step = 2;
+        } else if (step === 2) {
+          if (text === "1") {
+            await sendText(
+              from,
+              "Available Projects:\n1️⃣ Abode Aravindam\n2️⃣ MJ Lakeview Heights"
+            );
+            await logUserAction(from, userName, "Viewed Projects List", "");
+            sessions[from].step = 3;
+          } else if (text === "2") {
+            await sendText(
+              from,
+              "📞 Call: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com\n📅 Book Site Visit: https://abodegroups.com/contact-us/"
+            );
+            await logUserAction(from, userName, "Requested Expert Contact", "");
+            await sendText(
+              from,
+              "🙏 Thank you for contacting Abode Constructions!"
+            );
+            sessions[from].step = 1;
+          } else if (text === "3") {
+            await sendText(
+              from,
+              `Download Brochures:\nAbode Aravindam 2BHK: ${PROJECTS["1"].brochure["2BHK"]}\nAbode Aravindam 3BHK: ${PROJECTS["1"].brochure["3BHK"]}\nMJ Lakeview 2BHK: ${PROJECTS["2"].brochure["2BHK"]}\nMJ Lakeview 3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
+            );
+            await logUserAction(from, userName, "Downloaded Brochure", "All");
+            await sendText(
+              from,
+              "🙏 Thank you for contacting Abode Constructions!"
+            );
+            sessions[from].step = 1;
+          } else if (text === "4") {
+            await sendText(
+              from,
+              "📅 Book a Site Visit here: https://abodegroups.com/contact-us/"
+            );
+            await logUserAction(from, userName, "Booked Site Visit", "");
+            await sendText(
+              from,
+              "🙏 Thank you for contacting Abode Constructions!"
+            );
+            sessions[from].step = 1;
+          } else {
+            await sendText(from, "❗ Please reply with 1, 2, 3, or 4 only.");
+          }
+        } else if (step === 3) {
+          if (text === "1") {
+            await sendText(
+              from,
+              `${PROJECTS["1"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["1"].brochure["2BHK"]}\n3BHK: ${PROJECTS["1"].brochure["3BHK"]}`
+            );
+            await logUserAction(
+              from,
+              userName,
+              "Viewed Project Details",
+              "Abode Aravindam"
+            );
+          } else if (text === "2") {
+            await sendText(
+              from,
+              `${PROJECTS["2"].details}\n📄 Brochures:\n2BHK: ${PROJECTS["2"].brochure["2BHK"]}\n3BHK: ${PROJECTS["2"].brochure["3BHK"]}`
+            );
+            await logUserAction(
+              from,
+              userName,
+              "Viewed Project Details",
+              "MJ Lakeview Heights"
+            );
+          } else {
+            await sendText(from, "❗ Reply with 1 or 2 for project details.");
+          }
+          await sendText(
+            from,
+            "🙏 Thank you for contacting Abode Constructions!"
+          );
+          sessions[from].step = 1;
+        }
+      }
+    }
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+app.listen(PORT, () =>
+  console.log(`✅ Webhook server running on http://localhost:${PORT}`)
+);
