@@ -710,7 +710,7 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "❓ Invalid input. Please type a number (1-4) or 'menu'.");
       }
     }
-
+    
     // Project selection
     else if (userSession.stage === "project_selection") {
       if (text === "1" || text === "2") {
