@@ -353,10 +353,10 @@ function getGreeting() {
   return "Good Evening";
 }
 
-// Reset inactivity timer
+/* Reset inactivity timer
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name };
-  if (sessions[phone].timer) clearTimeout(sessions[phone].timer);
+  if (sessions[phone].timer) clearTimeout(sessions[phone].timer);*/
 
   sessions[phone].timer = setTimeout(async () => {
     await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
@@ -419,7 +419,7 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
       } else if (text === "3") {
         await sendText(from, `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-          .map(([_, p]) => `${p.name}:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`)
+          .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
           .join("\n\n")}`);
       } else if (text === "4") {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
@@ -450,7 +450,9 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
-        await sendText(from, `📄 Download your brochure here:\n2BHK: ${PROJECTS.brochure["2BHK"]}\n3BHK: ${PROJECTS.brochure["3BHK"]}`);
+        await sendText(from, `📄 Download your brochure here:\n\n${Object.entries(PROJECTS)
+          .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
+          .join("\n\n")}`);
         delete sessions[from];
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
