@@ -354,7 +354,7 @@ function getGreeting() {
   return "Good Evening";
 }
 
-// Reset inactivity timer
+/* Reset inactivity timer
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name };
   if (sessions[phone].timer) clearTimeout(sessions[phone].timer);
@@ -363,7 +363,31 @@ function resetTimer(phone, name) {
     await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
     delete sessions[phone];
   }, 1 * 60 * 1000);
+}*/
+
+// Reset inactivity timer with flag to prevent multiple thank-you messages
+function resetTimer(phone, name) {
+  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
+
+  const session = sessions[phone];
+
+  // Clear existing timer if it exists
+  if (session.timer) clearTimeout(session.timer);
+
+  // Start new timer
+  session.timer = setTimeout(async () => {
+    if (!session.hasThanked) {
+      session.hasThanked = true; // Prevent duplicate message
+      await sendText(
+        phone,
+        `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`
+      );
+      console.log(`✅ Sent thank-you message to ${phone}`);
+      delete sessions[phone]; // Clean up session after sending
+    }
+  }, 2 * 60 * 1000); // 2 minutes
 }
+
 
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
 
