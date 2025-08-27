@@ -533,7 +533,7 @@ function resetTimer(phone, name) {
 function sendMainMenu(to, name) {
   sendText(
     to,
-    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
+    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
   );
 }
 
@@ -588,6 +588,9 @@ app.post("/webhook", async (req, res) => {
 
     if (text === "menu") {
       userSession.stage = "main";
+      sendMainMenu(from, name);
+      return res.sendStatus(200);
+      userSession.stage = "Talk to expert";
       sendMainMenu(from, name);
       return res.sendStatus(200);
     }
