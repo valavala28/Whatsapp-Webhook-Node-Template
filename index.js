@@ -273,11 +273,11 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
 🆔 RERA No: P01100005069
 🏘 Property Type: Premium Gated Community
 🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
-💰 Starting From: ₹92 Lakhs Onwards
+💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
       "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
       "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
-    }',
+    },
   },
   "2": {
     name: "MJ Lakeview Heights – Ameenpur",
@@ -303,13 +303,14 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 🆔 RERA No: P01100009015
 🏘 Property Type: Premium Gated Community
 🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
-💰 Starting From: ₹82 Lakhs Onwards
+💰 Starting From: ₹82 Lakhs Onwards`,
     brochure: {
       "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
       "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
-    }',
+    },
   },
 };
+
 
 // Session storage
 const sessions = {};
