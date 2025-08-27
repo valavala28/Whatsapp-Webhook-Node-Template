@@ -626,10 +626,10 @@ function sendMainMenu(to, name) {
 
 // Enhanced input handling
 function interpretInput(input) {
-  if (["1", "projects", "project", "view projects"].includes(input)) return "1";
-  if (["2", "expert", "talk", "call"].includes(input)) return "2";
-  if (["3", "brochure", "pdf", "download"].includes(input)) return "3";
-  if (["4", "visit", "site", "book"].includes(input)) return "4";
+  if (["1", "projects", "project", "View Projects", "view projects"].includes(input)) return "1";
+  if (["2", "expert", "talk", "call", "Talk to Expert", "Talk", "TALK", "Call", "CALL", "TALK TO EXPERT"].includes(input)) return "2";
+  if (["3", "brochure", "pdf", "download","Download", "DOWNLOAD", "Brochure", "Download Brochure","BROCHURE", "DOWNLOAD BROCHURE"].includes(input)) return "3";
+  if (["4", "visit", "site", "book", "BOOK", "Book a Site Visit", "BOOK A SITE VISIT"].includes(input)) return "4";
   return input;
 }
 
