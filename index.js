@@ -596,9 +596,11 @@ function getGreeting() {
   return "Good Evening";
 }
 
-/* Reset inactivity timer
+
+// Reset inactivity timer with thank-you message
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
+
   const session = sessions[phone];
   if (session.timer) clearTimeout(session.timer);
 
@@ -613,40 +615,6 @@ function resetTimer(phone, name) {
       delete sessions[phone];
     }
   }, 2 * 60 * 1000);
-}*/
-
-function resetTimer(phone, name) {
-  if (!sessions[phone]) {
-    sessions[phone] = { name, hasThanked: false, timer: null };
-  }
-
-  const session = sessions[phone];
-
-  // If already sent, do nothing
-  if (session.hasThanked) return;
-
-  // ✅ Prevent multiple timers
-  if (session.timer) {
-    clearTimeout(session.timer);
-  }
-
-  // Start a new timer
-  session.timer = setTimeout(async () => {
-    // Double-check to avoid duplicate sending
-    if (!session.hasThanked) {
-      session.hasThanked = true;
-
-      await sendText(
-        phone,
-        `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`
-      );
-
-      console.log(`✅ Thank-you message sent to ${phone}`);
-
-      // Clean up session after sending
-      delete sessions[phone];
-    }
-  }, 2 * 60 * 1000); // 2 minutes
 }
 
 
