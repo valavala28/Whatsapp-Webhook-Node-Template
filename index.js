@@ -596,7 +596,7 @@ function getGreeting() {
   return "Good Evening";
 }
 
-/* Reset inactivity timer
+// Reset inactivity timer
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
   const session = sessions[phone];
@@ -613,9 +613,9 @@ function resetTimer(phone, name) {
       delete sessions[phone];
     }
   }, 2 * 60 * 1000);
-}*/
+}
 
-// Reset inactivity timer
+/* Reset inactivity timer
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null };
 
@@ -642,7 +642,7 @@ function resetTimer(phone, name) {
       delete sessions[phone]; // Clean up session
     }
   }, 2 * 60 * 1000);
-}
+}*/
 
 // Send menu
 function sendMainMenu(to, name) {
