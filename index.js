@@ -311,9 +311,9 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
   },
 };
 
-
-// Session storage
+// Session and message tracking
 const sessions = {};
+const processedMessages = new Set();
 
 // Utility: Send WhatsApp text
 async function sendText(to, text) {
@@ -354,41 +354,35 @@ function getGreeting() {
   return "Good Evening";
 }
 
-/* Reset inactivity timer
-function resetTimer(phone, name) {
-  if (!sessions[phone]) sessions[phone] = { name };
-  if (sessions[phone].timer) clearTimeout(sessions[phone].timer);
-
-  sessions[phone].timer = setTimeout(async () => {
-    await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
-    delete sessions[phone];
-  }, 1 * 60 * 1000);
-}*/
-
 // Reset inactivity timer with flag to prevent multiple thank-you messages
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
 
   const session = sessions[phone];
 
-  // Clear existing timer if it exists
   if (session.timer) clearTimeout(session.timer);
 
-  // Start new timer
   session.timer = setTimeout(async () => {
     if (!session.hasThanked) {
-      session.hasThanked = true; // Prevent duplicate message
+      session.hasThanked = true;
       await sendText(
         phone,
         `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`
       );
       console.log(`✅ Sent thank-you message to ${phone}`);
-      delete sessions[phone]; // Clean up session after sending
+      delete sessions[phone];
     }
-  }, 2 * 60 * 1000); // 2 minutes
+  }, 2 * 60 * 1000);
 }
 
+function sendMainMenu(to, name) {
+  sendText(
+    to,
+    `${getGreeting()} ${name}! ✨\nWelcome back to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
+  );
+}
 
+// Routes
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
 
 // Webhook verification
@@ -409,25 +403,27 @@ app.get("/webhook", (req, res) => {
 app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
-    console.log("Incoming webhook:", JSON.stringify(body, null, 2));
-
     const entry = body.entry?.[0]?.changes?.[0]?.value;
     const msg = entry?.messages?.[0];
     const contact = entry?.contacts?.[0];
 
     if (!msg) return res.sendStatus(200);
 
+    const messageId = msg.id;
+    if (processedMessages.has(messageId)) {
+      console.log(`⚠️ Duplicate message ignored: ${messageId}`);
+      return res.sendStatus(200);
+    }
+    processedMessages.add(messageId);
+
     const from = msg.from;
     const text = msg.text?.body?.trim().toLowerCase() || "";
     const name = contact?.profile?.name || "Customer";
 
-    // Initialize new user
+    // Start session for new users
     if (!sessions[from]) {
       sessions[from] = { name, stage: "main" };
-      await sendText(
-        from,
-        `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣  View Projects\n2️⃣  Talk to Expert\n3️⃣  Download Brochure\n4️⃣  Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
-      );
+      sendMainMenu(from, name);
       await logAction(from, name, "Started Chat");
       return res.sendStatus(200);
     }
@@ -435,7 +431,14 @@ app.post("/webhook", async (req, res) => {
     resetTimer(from, name);
     const userSession = sessions[from];
 
-    // Main menu
+    // Menu shortcut
+    if (text === "menu") {
+      userSession.stage = "main";
+      sendMainMenu(from, name);
+      return res.sendStatus(200);
+    }
+
+    // Main menu logic
     if (userSession.stage === "main") {
       if (text === "1") {
         await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
@@ -443,17 +446,20 @@ app.post("/webhook", async (req, res) => {
       } else if (text === "2") {
         await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
       } else if (text === "3") {
-        await sendText(from, `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-          .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
-          .join("\n\n")}`);
+        await sendText(
+          from,
+          `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+            .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
+            .join("\n\n")}`
+        );
       } else if (text === "4") {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
       } else {
-        await sendText(from, "❓ Sorry, I didn't understand that. Type a number (1-4) or keyword like 'price' or 'contact'.");
+        await sendText(from, "❓ Invalid choice. Type a number (1-4) or 'menu' to restart.");
       }
     }
 
-    // Project selection stage
+    // Project selection logic
     else if (userSession.stage === "project_selection") {
       if (text === "1" || text === "2") {
         const project = PROJECTS[text];
@@ -461,13 +467,12 @@ app.post("/webhook", async (req, res) => {
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
-        await sendText(from, "❌ Invalid option. Please reply with 1 or 2 for project selection.");
+        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
       }
     }
 
-    // Project details stage
+    // Project details logic
     else if (userSession.stage === "project_details") {
-      const project = PROJECTS[userSession.selectedProject];
       if (text === "1") {
         await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
@@ -475,9 +480,8 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
-        await sendText(from, `📄 Download your brochure here:\n\n${Object.entries(PROJECTS)
-          .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
-          .join("\n\n")}`);
+        const project = PROJECTS[userSession.selectedProject];
+        await sendText(from, `📄 Brochure Links:\n\n2BHK\n ${project.brochure["2BHK"]}\n\n3BHK\n ${project.brochure["3BHK"]}`);
         delete sessions[from];
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
