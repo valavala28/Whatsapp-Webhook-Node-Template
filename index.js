@@ -596,7 +596,7 @@ function getGreeting() {
   return "Good Evening";
 }
 
-// Reset inactivity timer
+/* Reset inactivity timer
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
   const session = sessions[phone];
@@ -613,36 +613,42 @@ function resetTimer(phone, name) {
       delete sessions[phone];
     }
   }, 2 * 60 * 1000);
-}
+}*/
 
-/* Reset inactivity timer
 function resetTimer(phone, name) {
-  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null };
+  if (!sessions[phone]) {
+    sessions[phone] = { name, hasThanked: false, timer: null };
+  }
 
   const session = sessions[phone];
 
-  // If thank-you message is already sent, don't reset again
+  // If already sent, do nothing
   if (session.hasThanked) return;
 
-  // Clear any existing timer before creating a new one
+  // ✅ Prevent multiple timers
   if (session.timer) {
     clearTimeout(session.timer);
-    session.timer = null;
   }
 
-  // Set a new timer for 2 minutes
+  // Start a new timer
   session.timer = setTimeout(async () => {
+    // Double-check to avoid duplicate sending
     if (!session.hasThanked) {
       session.hasThanked = true;
+
       await sendText(
         phone,
         `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`
       );
-      console.log(`✅ Sent thank-you message to ${phone}`);
-      delete sessions[phone]; // Clean up session
+
+      console.log(`✅ Thank-you message sent to ${phone}`);
+
+      // Clean up session after sending
+      delete sessions[phone];
     }
-  }, 2 * 60 * 1000);
-}*/
+  }, 2 * 60 * 1000); // 2 minutes
+}
+
 
 // Send menu
 function sendMainMenu(to, name) {
