@@ -362,7 +362,7 @@ function resetTimer(phone, name) {
     await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
     delete sessions[phone];
   }, 1 * 60 * 1000);
-}
+
 
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
 
