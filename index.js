@@ -361,7 +361,7 @@ function resetTimer(phone, name) {
   sessions[phone].timer = setTimeout(async () => {
     await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
     delete sessions[phone];
-  }, 2 * 60 * 1000);
+  }, 1 * 60 * 1000);
 }
 
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
@@ -444,13 +444,13 @@ app.post("/webhook", async (req, res) => {
     else if (userSession.stage === "project_details") {
       const project = PROJECTS[userSession.selectedProject];
       if (text === "1") {
-        await sendText(from, "✅ Connecting you to our Expert. Please wait...");
+        await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
       } else if (text === "2") {
-        await sendText(from, "🗓 Please share your preferred date and time for the site visit.");
+        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
-        await sendText(from, `📄 Download your brochure here:\n2BHK: ${project.brochure["2BHK"]}\n3BHK: ${project.brochure["3BHK"]}`);
+        await sendText(from, `📄 Download your brochure here:\n2BHK: ${PROJECTS.brochure["2BHK"]}\n3BHK: ${PROJECTS.brochure["3BHK"]}`);
         delete sessions[from];
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
