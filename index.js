@@ -615,6 +615,7 @@ function resetTimer(phone, name) {
   }, 2 * 60 * 1000);
 }
 
+
 // Send menu
 function sendMainMenu(to, name) {
   sendText(
@@ -715,7 +716,7 @@ app.post("/webhook", async (req, res) => {
     else if (userSession.stage === "project_selection") {
       if (text === "1" || text === "2") {
         const project = PROJECTS[text];
-        await sendText(from, `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`);
+        await sendText(from, `${project.details}\n\nWould you like to:\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit`);
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
@@ -725,10 +726,10 @@ app.post("/webhook", async (req, res) => {
 
     // Project details
     else if (userSession.stage === "project_details") {
-      if (text === "1") {
+      if (text === "2") {
         await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
-      } else if (text === "2") {
+      } else if (text === "4") {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
@@ -736,7 +737,7 @@ app.post("/webhook", async (req, res) => {
         await sendText(from, `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`);
         delete sessions[from];
       } else {
-        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+        await sendText(from, "❌ Invalid choice. Please reply with 2, 3, or 4.");
       }
     }
 
