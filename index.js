@@ -1,4 +1,4 @@
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -265,7 +265,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
 
 
 /*const express = require("express");
@@ -753,7 +753,7 @@ app.post("/webhook", async (req, res) => {
 
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -1072,6 +1072,6 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
