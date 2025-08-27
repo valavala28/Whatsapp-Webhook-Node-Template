@@ -116,119 +116,7 @@ async function sendText(to, text) {
   }
 }
 
-// Utility: Log user interaction to Google Sheets
-async function logAction(phone, name, action, details = "") {
-  try {
-    await axios.post(GOOGLE_SCRIPT_URL, {
-      timestamp: new Date().toLocaleString("en-US", { hour12: true }),
-      userPhone: phone,
-      customerName: name,
-      action,
-      details,
-    });
-    console.log(`✅ Action logged: ${action}`);
-  } catch (error) {
-    console.error("❌ Logging failed:", error.message);
-  }
-}
-
-// Utility: Get greeting in 12-hour format
-function getGreeting() {
-  const now = new Date();
-  let hour = now.getHours();
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12;
-  if (ampm === "AM") return "Good Morning";
-  if (hour < 5) return "Good Afternoon";
-  if (hour < 9) return "Good Evening";
-  return "Good Evening";
-}
-
-// Root route
-app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
-
-// Webhook verification
-app.get("/webhook", (req, res) => {
-  const VERIFY_TOKEN = "Abode@14";
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  if (mode && token === VERIFY_TOKEN) {
-    console.log("WEBHOOK_VERIFIED");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
-  }
-});
-
-// Webhook receiver
-app.post("/webhook", async (req, res) => {
-  try {
-    const body = req.body;
-    console.log("Incoming webhook:", JSON.stringify(body, null, 2));
-
-    if (!body.entry || !body.entry[0]?.changes) {
-      console.warn("⚠️ Invalid webhook structure");
-      return res.sendStatus(200);
-    }
-
-    const entry = body.entry[0].changes[0].value;
-    const msg = entry?.messages?.[0];
-    const contact = entry?.contacts?.[0];
-
-    if (!msg) return res.sendStatus(200);
-
-    const from = msg.from;
-    const text = msg.text?.body?.trim().toLowerCase() || "";
-    const name = contact?.profile?.name || "Customer";
-
-    let reply = "";
-    let action = "";
-
-    if (/hi|hello|hey/.test(text)) {
-      reply = `${getGreeting()} ${name}! ✨\nWelcome to *Abode Constructions*. 🏡\n\nSelect an option 👇\n1️⃣  View Projects\n2️⃣  Talk to Expert\n3️⃣  Download Brochure\n4️⃣  Book a Site Visit`;
-      action = "Started Chat";
-    } else if (text === "1" || text.includes("project")) {
-      reply = `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`;
-      action = "Viewed Projects List";
-    } else if (text === "2" || text.includes("expert")) {
-      reply = `📞 Call: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com`;
-      action = "Requested Expert Contact";
-    } else if (text === "3" || text.includes("brochure")) {
-      reply = `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-        .map(
-          ([key, p]) =>
-            `${p.name}:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`
-        )
-        .join("\n\n")}`;
-      action = "Downloaded Brochure";
-    } else if (text === "4" || text.includes("visit")) {
-      reply = "📅 Book your site visit here: https://abodegroups.com/contact-us/";
-      action = "Booked Site Visit";
-    } else if (PROJECTS[text]) {
-      const p = PROJECTS[text];
-      reply = `${p.details}\n\n📄 Brochures:\n2BHK: ${p.brochure["2BHK"]}\n3BHK: ${p.brochure["3BHK"]}`;
-      action = `Viewed Project Details: ${p.name}`;
-    } else {
-      reply = `Sorry, I didn't get that. Please reply with 1, 2, 3, or 4.`;
-      action = "Unknown Input";
-    }
-
-    await sendText(from, reply);
-    await logAction(from, name, action, text);
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.sendStatus(500);
-  }
-});
-
-app.listen(PORT, () =>
-  console.log(`✅ Webhook server running on http://localhost:${PORT}`)
-);*/
-
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -242,7 +130,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
-const GOOGLE_SCRIPT_URL = "https://docs.google.com/spreadsheets/d/1pZrYjEY16A66s9ZQzFcJVoj4-IVP_CctAK3e8ZlQ6y8/edit?gid=0#gid=0";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
 
 // Project data
 const PROJECTS = {
@@ -334,7 +222,7 @@ async function logAction(phone, name, action, details = "") {
   try {
     if (!GOOGLE_SCRIPT_URL) return;
     await axios.post(GOOGLE_SCRIPT_URL, {
-      timestamp: new Date().toLocaleString("en-US", { hour12: true }),
+      timestamp: new Date().toLocaleString("en-US", { hour12: true, timeZone: "Asia/Kolkata" }),
       userPhone: phone,
       customerName: name,
       action,
@@ -342,24 +230,24 @@ async function logAction(phone, name, action, details = "") {
     });
     console.log(`✅ Logged: ${action}`);
   } catch (error) {
-    console.error("❌ Logging failed:", error.message);
+    console.error("❌ Logging failed:", error.response?.data || error.message);
   }
 }
 
-// Utility: Greeting
+// Utility: Greeting based on IST
 function getGreeting() {
-  const hour = new Date().getHours();
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const hour = now.getHours();
   if (hour < 12) return "Good Morning";
   if (hour < 17) return "Good Afternoon";
   return "Good Evening";
 }
 
-// Reset inactivity timer with flag to prevent multiple thank-you messages
+// Reset inactivity timer with thank-you message
 function resetTimer(phone, name) {
   if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
 
   const session = sessions[phone];
-
   if (session.timer) clearTimeout(session.timer);
 
   session.timer = setTimeout(async () => {
@@ -375,10 +263,11 @@ function resetTimer(phone, name) {
   }, 2 * 60 * 1000);
 }
 
+// Send main menu
 function sendMainMenu(to, name) {
   sendText(
     to,
-    `${getGreeting()} ${name}! ✨\nWelcome back to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
+    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions..🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
   );
 }
 
@@ -420,7 +309,7 @@ app.post("/webhook", async (req, res) => {
     const text = msg.text?.body?.trim().toLowerCase() || "";
     const name = contact?.profile?.name || "Customer";
 
-    // Start session for new users
+    // Start session
     if (!sessions[from]) {
       sessions[from] = { name, stage: "main" };
       sendMainMenu(from, name);
@@ -431,14 +320,13 @@ app.post("/webhook", async (req, res) => {
     resetTimer(from, name);
     const userSession = sessions[from];
 
-    // Menu shortcut
     if (text === "menu") {
       userSession.stage = "main";
       sendMainMenu(from, name);
       return res.sendStatus(200);
     }
 
-    // Main menu logic
+    // Menu navigation
     if (userSession.stage === "main") {
       if (text === "1") {
         await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
@@ -449,7 +337,7 @@ app.post("/webhook", async (req, res) => {
         await sendText(
           from,
           `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-            .map(([_, p]) => `${p.name}:\n\n2BHK\n ${p.brochure["2BHK"]}\n\n3BHK\n ${p.brochure["3BHK"]}`)
+            .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
             .join("\n\n")}`
         );
       } else if (text === "4") {
@@ -457,10 +345,7 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❓ Invalid choice. Type a number (1-4) or 'menu' to restart.");
       }
-    }
-
-    // Project selection logic
-    else if (userSession.stage === "project_selection") {
+    } else if (userSession.stage === "project_selection") {
       if (text === "1" || text === "2") {
         const project = PROJECTS[text];
         await sendText(from, `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`);
@@ -469,10 +354,7 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
       }
-    }
-
-    // Project details logic
-    else if (userSession.stage === "project_details") {
+    } else if (userSession.stage === "project_details") {
       if (text === "1") {
         await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
@@ -481,7 +363,7 @@ app.post("/webhook", async (req, res) => {
         delete sessions[from];
       } else if (text === "3") {
         const project = PROJECTS[userSession.selectedProject];
-        await sendText(from, `📄 Brochure Links:\n\n2BHK\n ${project.brochure["2BHK"]}\n\n3BHK\n ${project.brochure["3BHK"]}`);
+        await sendText(from, `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`);
         delete sessions[from];
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
@@ -496,9 +378,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
-*/
-
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
 
@@ -653,7 +533,7 @@ function resetTimer(phone, name) {
 function sendMainMenu(to, name) {
   sendText(
     to,
-    `${getGreeting()} ${name}! ✨\nWelcome back to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
+    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions. 🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
   );
 }
 
@@ -714,25 +594,27 @@ app.post("/webhook", async (req, res) => {
 
     // Menu navigation
     if (userSession.stage === "main") {
-      if (text === "1") {
-        await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
-        userSession.stage = "project_selection";
-      } else if (text === "2") {
-        await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
-      } else if (text === "3") {
-        await sendText(
-          from,
-          `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-            .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
-            .join("\n\n")}`
-        );
-      } else if (text === "4") {
-        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+      if (["1", "2", "3", "4"].includes(text)) {
+        if (text === "1") {
+          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
+          userSession.stage = "project_selection";
+        } else if (text === "2") {
+          await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
+        } else if (text === "3") {
+          await sendText(
+            from,
+            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+              .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
+              .join("\n\n")}`
+          );
+        } else if (text === "4") {
+          await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+        }
       } else {
-        await sendText(from, "❓ Invalid choice. Type a number (1-4) or 'menu' to restart.");
+        await sendText(from, "❓ Invalid choice. Please type a number (1-4) or 'menu' to restart.");
       }
     } else if (userSession.stage === "project_selection") {
-      if (text === "1" || text === "2") {
+      if (["1", "2"].includes(text)) {
         const project = PROJECTS[text];
         await sendText(from, `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`);
         userSession.stage = "project_details";
@@ -765,3 +647,4 @@ app.post("/webhook", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+
