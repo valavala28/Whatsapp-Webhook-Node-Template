@@ -85,7 +85,6 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 const sessions = {};
 const processedMessages = new Set();
 
-
 // Utility: Normalize input
 function interpretInput(input) {
   const t = (input || "").toLowerCase().trim();
@@ -96,14 +95,16 @@ function interpretInput(input) {
   return t;
 }
 
-
-// Utility: Send WhatsApp text
-async function sendText(to, text) {
+// Utility: Send WhatsApp text (supports optional idempotency key)
+async function sendText(to, text, opts = {}) {
   try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+    if (opts.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+
     await axios.post(
       `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
       { messaging_product: "whatsapp", to, text: { body: text } },
-      { headers: { Authorization: `Bearer ${TOKEN}` } }
+      { headers }
     );
     console.log(`✅ Message sent to ${to}`);
   } catch (error) {
@@ -137,21 +138,48 @@ function getGreeting() {
   return "Good Evening";
 }
 
-// Reset inactivity timer with thank-you message
+// Reset inactivity timer with thank-you message (fixed to avoid duplicates)
 function resetTimer(phone, name) {
-  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false };
+  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null, lastMessageId: null };
 
   const session = sessions[phone];
-  if (session.timer) clearTimeout(session.timer);
 
+  // If already thanked for this session, do not set a new timer
+  if (session.hasThanked) return;
+
+  // Clear any existing timer
+  if (session.timer) {
+    clearTimeout(session.timer);
+    session.timer = null;
+  }
+
+  // Set new 2-minute timer
   session.timer = setTimeout(async () => {
-    if (!session.hasThanked) {
-      session.hasThanked = true;
-      await sendText(
-        phone,
-        `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`
-      );
+    // re-check existence and flag to avoid races
+    const s = sessions[phone];
+    if (!s) return;
+    if (s.hasThanked) return;
+
+    // mark as thanked immediately to prevent concurrent timers from sending duplicates
+    s.hasThanked = true;
+
+    // create idempotency key from lastMessageId if available
+    const idemKey = s.lastMessageId ? `ty-${phone}-${s.lastMessageId}` : `ty-${phone}-${Date.now()}`;
+
+    try {
+      await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`, {
+        idempotencyKey: idemKey,
+      });
       console.log(`✅ Sent thank-you message to ${phone}`);
+    } catch (err) {
+      console.error("❌ Error sending thank-you:", err?.message || err);
+    } finally {
+      // cleanup
+      if (s.timer) {
+        clearTimeout(s.timer);
+        s.timer = null;
+      }
+      // delete session so next conversation starts fresh
       delete sessions[phone];
     }
   }, 2 * 60 * 1000);
@@ -200,17 +228,21 @@ app.post("/webhook", async (req, res) => {
     processedMessages.add(messageId);
 
     const from = msg.from;
-    const text = msg.text?.body?.trim().toLowerCase() || "";
+    const rawText = msg.text?.body?.trim() || "";
+    const text = interpretInput(rawText); // <-- use normalized input everywhere
     const name = contact?.profile?.name || "Customer";
 
     // Start session
     if (!sessions[from]) {
-      sessions[from] = { name, stage: "main" };
+      // create session with lastMessageId to help idempotency for thank-you
+      sessions[from] = { name, stage: "main", hasThanked: false, timer: null, lastMessageId: messageId };
       sendMainMenu(from, name);
       await logAction(from, name, "Started Chat");
       return res.sendStatus(200);
     }
 
+    // update lastMessageId for idempotency and reset timer
+    sessions[from].lastMessageId = messageId;
     resetTimer(from, name);
     const userSession = sessions[from];
 
@@ -218,13 +250,10 @@ app.post("/webhook", async (req, res) => {
       userSession.stage = "main";
       sendMainMenu(from, name);
       return res.sendStatus(200);
-      userSession.stage = "Talk to expert";
-      sendMainMenu(from, name);
-      return res.sendStatus(200);
     }
 
     // Menu navigation
-   if (userSession.stage === "main") {
+    if (userSession.stage === "main") {
       if (["1", "2", "3", "4"].includes(text)) {
         if (text === "1") {
           await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
@@ -242,42 +271,39 @@ app.post("/webhook", async (req, res) => {
           await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         }
       } else {
-        await sendText(from, "❓ Invalid choice. Please type a number (1-4) or 'menu' to restart.");
+        // reply to any non-menu text with confirmation (and log original rawText)
+        await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
+        await logAction(from, name, "Custom Query", rawText);
       }
-    }  else if (userSession.stage === "project_selection") {
-      if (text === "1" || text === "2") {
+    } else if (userSession.stage === "project_selection") {
+      if (["1", "2"].includes(text)) {
         const project = PROJECTS[text];
         await sendText(
           from,
-          `${project.details}\n\nWould you like to:\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit`
+          `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`
         );
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
         await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
       }
-    }
-
-    else if (userSession.stage === "project_details") {
-      if (text === "2") {
+    } else if (userSession.stage === "project_details") {
+      if (text === "1") {
         await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
-      } else if (text === "4") {
+      } else if (text === "2") {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
         const project = PROJECTS[userSession.selectedProject];
-        await sendText(
-          from,
-          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`
-        );
+        await sendText(from, `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`);
         delete sessions[from];
       } else {
-        await sendText(from, "❌ Invalid choice. Please reply with 2, 3, or 4.");
+        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
       }
     }
 
-    await logAction(from, name, "Message", text);
+    await logAction(from, name, "Message", rawText);
     res.sendStatus(200);
   } catch (err) {
     console.error("❌ Webhook error:", err.message);
