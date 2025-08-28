@@ -1,4 +1,4 @@
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -84,6 +84,18 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 // Session and message tracking
 const sessions = {};
 const processedMessages = new Set();
+
+
+// Utility: Normalize input
+function interpretInput(input) {
+  const t = (input || "").toLowerCase().trim();
+  if (["1", "projects", "project", "view projects"].includes(t)) return "1";
+  if (["2", "expert", "talk", "call", "talk to expert"].includes(t)) return "2";
+  if (["3", "brochure", "pdf", "download", "download brochure"].includes(t)) return "3";
+  if (["4", "visit", "site", "book", "book a site visit"].includes(t)) return "4";
+  return t;
+}
+
 
 // Utility: Send WhatsApp text
 async function sendText(to, text) {
@@ -212,7 +224,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     // Menu navigation
-    if (userSession.stage === "main") {
+   if (userSession.stage === "main") {
       if (["1", "2", "3", "4"].includes(text)) {
         if (text === "1") {
           await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
@@ -232,28 +244,36 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❓ Invalid choice. Please type a number (1-4) or 'menu' to restart.");
       }
-    } else if (userSession.stage === "project_selection") {
-      if (["1", "2"].includes(text)) {
+    }  else if (userSession.stage === "project_selection") {
+      if (text === "1" || text === "2") {
         const project = PROJECTS[text];
-        await sendText(from, `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`);
+        await sendText(
+          from,
+          `${project.details}\n\nWould you like to:\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit`
+        );
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
         await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
       }
-    } else if (userSession.stage === "project_details") {
-      if (text === "1") {
+    }
+
+    else if (userSession.stage === "project_details") {
+      if (text === "2") {
         await sendText(from, "📞 Call us: +91-8008312211");
         delete sessions[from];
-      } else if (text === "2") {
+      } else if (text === "4") {
         await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
         delete sessions[from];
       } else if (text === "3") {
         const project = PROJECTS[userSession.selectedProject];
-        await sendText(from, `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`);
+        await sendText(
+          from,
+          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`
+        );
         delete sessions[from];
       } else {
-        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+        await sendText(from, "❌ Invalid choice. Please reply with 2, 3, or 4.");
       }
     }
 
@@ -265,7 +285,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
 
 
 /*const express = require("express");
@@ -1385,7 +1405,7 @@ app.post("/webhook", async (req, res) => {
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -1667,5 +1687,5 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
