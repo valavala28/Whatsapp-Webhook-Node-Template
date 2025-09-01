@@ -317,7 +317,7 @@ app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${POR
 
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -631,13 +631,25 @@ app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${POR
 
 
 
+        await sendText(from, "❌ Invalid choice. Please reply with 2, 3, or 4.");
+      }
+    }
+
+    await logAction(from, name, "Message", text);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
-
-
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
+const mysql = require("mysql2/promise");
 require("dotenv").config();
 
 const app = express();
@@ -649,7 +661,15 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZcJsVIaUQ0Fx9dBEHbiN-YUaI4XkU1iLPGfDVrJgKyNkOSN9iMV40aIW6Aolbj4PMxQ/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
+
+// DB connection
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: "whatsapp_inbox"
+});
 
 // Project data
 const PROJECTS = {
@@ -682,8 +702,8 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
 🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
 💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://drive.google.com/file/d/1cet434rju5vZzLfNHoCVZE3cR-dEnQHz/view?usp=sharing",
-      "3BHK": "https://drive.google.com/file/d/1gz0E1sooyRDfrDgUv3DhfYffv9vE2IgN/view?usp=sharing",
+      "2BHK": "https://bit.ly/3JBumIL",
+      "3BHK": "https://bit.ly/4fUZxL0",
     },
   },
   "2": {
@@ -712,107 +732,17 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
 💰 Starting From: ₹82 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://drive.google.com/file/d/1t9zfs6fhQaeNtRkrTtBECTLyEw9pNVkW/view?usp=sharing",
-      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "2BHK": "https://bit.ly/4lMCkMg",
+      "3BHK": "https://bit.ly/45TCVWN",
     },
   },
 };
 
-// Sessions and message tracking
+// Session + duplicate tracking
 const sessions = {};
 const processedMessages = new Set();
 
-// Utility: Send WhatsApp text
-async function sendText(to, text, opts = {}) {
-  try {
-    const headers = { Authorization: `Bearer ${TOKEN}` };
-    if (opts.idempotencyKey) {
-      headers["X-Idempotency-Key"] = opts.idempotencyKey;
-    }
-    await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
-      { messaging_product: "whatsapp", to, text: { body: text } },
-      { headers }
-    );
-    console.log(`✅ Message sent to ${to}`);
-  } catch (error) {
-    console.error("❌ Failed to send message:", error.response?.data || error.message);
-  }
-}
-
-// Utility: Log interactions
-async function logAction(phone, name, action, details = "") {
-  try {
-    if (!GOOGLE_SCRIPT_URL) return;
-    await axios.post(GOOGLE_SCRIPT_URL, {
-      timestamp: new Date().toLocaleString("en-US", { hour12: true, timeZone: "Asia/Kolkata" }),
-      userPhone: phone,
-      customerName: name,
-      action,
-      details,
-    });
-    console.log(`✅ Logged: ${action}`);
-  } catch (error) {
-    console.error("❌ Logging failed:", error.response?.data || error.message);
-  }
-}
-
-// Greeting based on IST
-function getGreeting() {
-  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  const hour = now.getHours();
-  if (hour < 12) return "Good Morning";
-  if (hour < 17) return "Good Afternoon";
-  return "Good Evening";
-}
-
-// Reset inactivity timer (sends thank-you ONCE)
-function resetTimer(phone, name) {
-  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null, lastMessageId: null };
-
-  const session = sessions[phone];
-
-  if (session.hasThanked) return;
-
-  if (session.timer) {
-    clearTimeout(session.timer);
-    session.timer = null;
-  }
-
-  session.timer = setTimeout(async () => {
-    if (session.hasThanked) return;
-
-    session.hasThanked = true;
-
-    const idemKey = session.lastMessageId
-      ? `ty-${phone}-${session.lastMessageId}`
-      : `ty-${phone}-${Date.now()}`;
-
-    await sendText(
-      phone,
-      `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`,
-      { idempotencyKey: idemKey }
-    );
-
-    console.log(`✅ Sent thank-you message to ${phone}`);
-
-    if (session.timer) {
-      clearTimeout(session.timer);
-      session.timer = null;
-    }
-    delete sessions[phone];
-  }, 2 * 60 * 1000);
-}
-
-// Send main menu
-function sendMainMenu(to, name) {
-  sendText(
-    to,
-    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
-  );
-}
-
-// Normalize input
+// --------- UTILITIES ----------
 function interpretInput(input) {
   const t = (input || "").toLowerCase().trim();
   if (["1", "projects", "project", "view projects"].includes(t)) return "1";
@@ -822,16 +752,94 @@ function interpretInput(input) {
   return t;
 }
 
-// Routes
+async function sendText(to, text, opts = {}, conversationId = null) {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+    if (opts.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+
+    const response = await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      { messaging_product: "whatsapp", to, text: { body: text } },
+      { headers }
+    );
+
+    console.log(`✅ Message sent to ${to}`);
+
+    // Save outbound message in DB
+    if (conversationId) {
+      const waMessageId = response.data?.messages?.[0]?.id || null;
+      await db.query(
+        `INSERT INTO messages (conversation_id, wa_message_id, direction, msg_type, text_body, wa_timestamp) 
+         VALUES (?, ?, 'outbound', 'text', ?, NOW())`,
+        [conversationId, waMessageId, text]
+      );
+    }
+  } catch (error) {
+    console.error("❌ Failed to send message:", error.response?.data || error.message);
+  }
+}
+
+async function logAction(phone, name, action, details = "") {
+  try {
+    if (!GOOGLE_SCRIPT_URL) return;
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      userPhone: phone,
+      customerName: name,
+      action,
+      details,
+    });
+    console.log(`✅ Logged: ${action} - ${details}`);
+  } catch (error) {
+    console.error("❌ Logging failed:", error.response?.data || error.message);
+  }
+}
+
+function getGreeting() {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const hour = now.getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+function resetTimer(phone, name) {
+  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null, lastMessageId: null };
+  const session = sessions[phone];
+  if (session.hasThanked) return;
+  if (session.timer) clearTimeout(session.timer);
+
+  session.timer = setTimeout(async () => {
+    const s = sessions[phone];
+    if (!s || s.hasThanked) return;
+
+    s.hasThanked = true;
+    const idemKey = s.lastMessageId ? `ty-${phone}-${s.lastMessageId}` : `ty-${phone}-${Date.now()}`;
+
+    await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`, {
+      idempotencyKey: idemKey,
+    });
+    console.log(`✅ Sent thank-you message to ${phone}`);
+    delete sessions[phone];
+  }, 2 * 60 * 1000);
+}
+
+function sendMainMenu(to, name, conversationId) {
+  sendText(
+    to,
+    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`,
+    {},
+    conversationId
+  );
+}
+
+// --------- ROUTES ----------
 app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
 
-// Webhook verification
 app.get("/webhook", (req, res) => {
   const VERIFY_TOKEN = "Abode@14";
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
-
   if (mode && token === VERIFY_TOKEN) {
     console.log("WEBHOOK_VERIFIED");
     return res.status(200).send(challenge);
@@ -839,7 +847,7 @@ app.get("/webhook", (req, res) => {
   res.sendStatus(403);
 });
 
-// Webhook handler
+// Main webhook
 app.post("/webhook", async (req, res) => {
   try {
     const body = req.body;
@@ -857,84 +865,141 @@ app.post("/webhook", async (req, res) => {
     processedMessages.add(messageId);
 
     const from = msg.from;
-    let text = msg.text?.body?.trim().toLowerCase() || "";
+    const rawText = msg.text?.body?.trim() || "";
+    const text = interpretInput(rawText);
     const name = contact?.profile?.name || "Customer";
+    const waTimestamp = new Date(msg.timestamp * 1000);
 
-    // Start session
+    // -------- DB Conversation --------
+    let [conv] = await db.query(`SELECT id FROM conversations WHERE customer_number = ? LIMIT 1`, [from]);
+    let conversationId;
+    if (conv.length > 0) {
+      conversationId = conv[0].id;
+      await db.query(`UPDATE conversations SET last_message_at = ? WHERE id = ?`, [waTimestamp, conversationId]);
+    } else {
+      const [result] = await db.query(
+        `INSERT INTO conversations (customer_number, customer_name, last_message_at) VALUES (?, ?, ?)`,
+        [from, name, waTimestamp]
+      );
+      conversationId = result.insertId;
+    }
+
+    // Save inbound message
+    await db.query(
+      `INSERT IGNORE INTO messages (conversation_id, wa_message_id, direction, msg_type, text_body, wa_timestamp) 
+       VALUES (?, ?, 'inbound', 'text', ?, ?)`,
+      [conversationId, messageId, rawText, waTimestamp]
+    );
+
+    // -------- Your Existing Flow --------
     if (!sessions[from]) {
       sessions[from] = { name, stage: "main", hasThanked: false, timer: null, lastMessageId: messageId };
-      sendMainMenu(from, name);
+      sendMainMenu(from, name, conversationId);
       await logAction(from, name, "Started Chat");
       return res.sendStatus(200);
     }
 
     sessions[from].lastMessageId = messageId;
-
     resetTimer(from, name);
     const userSession = sessions[from];
 
-    text = interpretInput(text);
-
     if (text === "menu") {
       userSession.stage = "main";
-      sendMainMenu(from, name);
+      sendMainMenu(from, name, conversationId);
       return res.sendStatus(200);
     }
 
     if (userSession.stage === "main") {
-      if (text === "1") {
-        await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
-        userSession.stage = "project_selection";
-      } else if (text === "2") {
-        await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
-      } else if (text === "3") {
+      if (["1", "2", "3", "4"].includes(text)) {
+        if (text === "1") {
+          await sendText(
+            from,
+            `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`,
+            {},
+            conversationId
+          );
+          userSession.stage = "project_selection";
+          await logAction(from, name, "Viewed Projects", "List of projects displayed");
+        } else if (text === "2") {
+          await sendText(
+            from,
+            "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com",
+            {},
+            conversationId
+          );
+          await logAction(from, name, "Talked to Expert", "User requested expert contact");
+        } else if (text === "3") {
+          await sendText(
+            from,
+            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+              .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
+              .join("\n\n")}`,
+            {},
+            conversationId
+          );
+          await logAction(from, name, "Downloaded Brochure", "All project brochures sent");
+        } else if (text === "4") {
+          await sendText(
+            from,
+            "🗓 Book your site visit here: https://abodegroups.com/contact-us/",
+            {},
+            conversationId
+          );
+          await logAction(from, name, "Booked Site Visit", "Site visit link shared");
+        }
+      } else {
         await sendText(
           from,
-          `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-            .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
-            .join("\n\n")}`
+          `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`,
+          {},
+          conversationId
         );
-      } else if (text === "4") {
-        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-      } else {
-        await sendText(from, "❓ Invalid input. Please type a number (1-4) or 'menu'.");
+        await logAction(from, name, "Custom Query", rawText);
       }
-    }
-
-    else if (userSession.stage === "project_selection") {
-      if (text === "1" || text === "2") {
+    } else if (userSession.stage === "project_selection") {
+      if (["1", "2"].includes(text)) {
         const project = PROJECTS[text];
         await sendText(
           from,
-          `${project.details}\n\nWould you like to:\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit`
+          `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`,
+          {},
+          conversationId
         );
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
-        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
+        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.", {}, conversationId);
       }
-    }
-
-    else if (userSession.stage === "project_details") {
-      if (text === "2") {
-        await sendText(from, "📞 Call us: +91-8008312211");
+    } else if (userSession.stage === "project_details") {
+      const project = PROJECTS[userSession.selectedProject];
+      if (text === "1") {
+        await sendText(from, "📞 Call us: +91-8008312211", {}, conversationId);
+        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`);
         delete sessions[from];
-      } else if (text === "4") {
-        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-        delete sessions[from];
-      } else if (text === "3") {
-        const project = PROJECTS[userSession.selectedProject];
+      } else if (text === "2") {
         await sendText(
           from,
-          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`
+          "🗓 Book your site visit here: https://abodegroups.com/contact-us/",
+          {},
+          conversationId
         );
+        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`);
+        delete sessions[from];
+      } else if (text === "3") {
+        await sendText(
+          from,
+          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`,
+          {},
+          conversationId
+        );
+        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}, Brochure sent`);
         delete sessions[from];
       } else {
-        await sendText(from, "❌ Invalid choice. Please reply with 2, 3, or 4.");
+        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.", {}, conversationId);
       }
     }
 
-    await logAction(from, name, "Message", text);
+    await logAction(from, name, "Message", rawText);
     res.sendStatus(200);
   } catch (err) {
     console.error("❌ Webhook error:", err.message);
@@ -942,5 +1007,4 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
-
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
