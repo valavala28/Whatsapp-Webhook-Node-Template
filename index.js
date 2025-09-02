@@ -38,15 +38,15 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
 • Smart Design – Living, dining & kitchen areas for an effortless lifestyle
 • Premium Finishes – Elegant fittings & aesthetics
 
-📍 Location: Tellapur
+📍 Location: Tellapur  ( Abode Aravindam  https://maps.app.goo.gl/X7zC73xRM1SDnXuh8?g_st=aw )
 📐 Property Area: 5.27 Acres
 🆔 RERA No: P01100005069
 🏘 Property Type: Premium Gated Community
 🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
 💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://bit.ly/3JBumIL",
-      "3BHK": "https://bit.ly/4fUZxL0",
+      "2BHK": "https://bit.ly/3I4xOLr",
+      "3BHK": "https://bit.ly/3I4xOLr",
     },
   },
   "2": {
@@ -68,7 +68,7 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 • 18 Units Per Floor – Balanced community with privacy
 • Elegant Clubhouse – Recreation & community bonding
 
-📍 Location: Ameenpur
+📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
 📐 Property Area: 1.5 Acres
 🆔 RERA No: P01100009015
 🏘 Property Type: Premium Gated Community
