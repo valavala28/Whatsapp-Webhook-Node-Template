@@ -1791,6 +1791,54 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+// ---------------- DEBUG ROUTES ----------------
+
+// ✅ List all conversations
+app.get("/debug/conversations", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM conversations ORDER BY last_message_at DESC");
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error fetching conversations:", err);
+    res.status(500).json({ error: "Failed to fetch conversations" });
+  }
+});
+
+// ✅ List messages for a given conversation_id
+app.get("/debug/messages/:conversationId", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const [rows] = await db.query(
+      "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
+      [conversationId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error fetching messages:", err);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
+
+// ✅ Joined endpoint: conversations + messages
+app.get("/debug/conversation/:conversationId", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const [[conv]] = await db.query("SELECT * FROM conversations WHERE id = ?", [conversationId]);
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+
+    const [msgs] = await db.query(
+      "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
+      [conversationId]
+    );
+
+    res.json({ conversation: conv, messages: msgs });
+  } catch (err) {
+    console.error("❌ Error fetching conversation:", err);
+    res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+});
+
+
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
 
 
