@@ -1,4 +1,4 @@
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -1441,7 +1441,7 @@ app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${POR
 
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 const mysql = require("mysql2/promise");
@@ -1839,6 +1839,6 @@ app.get("/debug/conversation/:conversationId", async (req, res) => {
 });
 
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
