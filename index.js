@@ -15,7 +15,7 @@ const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWS
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";*/
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 require("dotenv").config();
@@ -68,6 +68,68 @@ app.get("/send", async (req, res) => {
 
   if (!phone) {
     return res.status(400).send("❌ Phone number is required. Example: /send?phone=918897019101&name=Rajeswari");
+  }
+
+  await sendTemplate(phone, name || "Customer");
+  res.send(`✅ Template sent to ${phone}`);
+});*/
+
+
+
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// WhatsApp Cloud API credentials (hardcoded as requested)
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
+
+// -------------------- Send Template proactively --------------------
+async function sendTemplate(to, name = "Customer") {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+
+    await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "initial_template", // use your approved template name
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              parameters: [{ type: "text", text: name }],
+            },
+          ],
+        },
+      },
+      { headers }
+    );
+
+    console.log(`✅ Template sent to ${to}`);
+  } catch (err) {
+    console.error("❌ Failed to send template:", err.response?.data || err.message);
+  }
+}
+
+// Trigger proactive template sending (works on Render URL)
+app.get("/send", async (req, res) => {
+  const { phone, name } = req.query;
+
+  if (!phone) {
+    return res
+      .status(400)
+      .send("❌ Phone number is required. Example: /send?phone=918897019101&name=Rajeswari");
   }
 
   await sendTemplate(phone, name || "Customer");
@@ -369,7 +431,10 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+/*app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
+
+// Start server
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
 
 
