@@ -2438,8 +2438,8 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
 🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
 💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://bit.ly/3I4xOLr",
-      "3BHK": "https://bit.ly/3I4xOLr",
+      "2BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
     },
   },
   "2": {
@@ -2468,10 +2468,18 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
 💰 Starting From: ₹82 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://bit.ly/4lMCkMg",
-      "3BHK": "https://bit.ly/45TCVWN",
+      "2BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
     },
   },
+   "3": {
+    name: "MJ Lakeview  – Ameenpur",
+    📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
+      brochure: {
+      "2BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+      "3BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+    },
+    },
 };
 
 // Session and message tracking
@@ -2667,7 +2675,7 @@ app.post("/webhook", async (req, res) => {
     if (userSession.stage === "main") {
       if (["1", "2", "3", "4"].includes(text)) {
         if (text === "1") {
-          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
+          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}\n3️⃣ ${PROJECTS["3"].name}`);
           userSession.stage = "project_selection";
           await logAction(from, name, "Viewed Projects", "List of projects displayed");
         } else if (text === "2") {
@@ -2692,7 +2700,7 @@ app.post("/webhook", async (req, res) => {
     }
     // Project selection stage
     else if (userSession.stage === "project_selection") {
-      if (["1", "2"].includes(text)) {
+      if (["1", "2", "3"].includes(text)) {
         const project = PROJECTS[text];
         await sendText(
           from,
@@ -2701,7 +2709,7 @@ app.post("/webhook", async (req, res) => {
         userSession.stage = "project_details";
         userSession.selectedProject = text;
       } else {
-        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
+        await sendText(from, "❌ Invalid option. Please reply with 1,2 or 3.");
       }
     }
     // Project details stage
