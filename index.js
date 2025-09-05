@@ -2473,8 +2473,8 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
     },
   },
    "3": {
-    name: "MJ Lakeview  – Ameenpur",
-    📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
+    name: "MJ Lakeview  – Ameenpur",\n
+      details: `📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )`,
       brochure: {
       "2BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
       "3BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
