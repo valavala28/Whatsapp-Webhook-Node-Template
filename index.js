@@ -2356,7 +2356,7 @@ const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
 
-// -------------------- Send Template proactively --------------------
+/* -------------------- Send Template proactively --------------------
 async function sendTemplate(to, name = "Customer") {
   try {
     const headers = { Authorization: `Bearer ${TOKEN}` };
@@ -2389,7 +2389,45 @@ async function sendTemplate(to, name = "Customer") {
   } catch (err) {
     console.error("❌ Failed to send template:", err.response?.data || err.message);
   }
+}*/
+
+// -------------------- Send Template proactively --------------------
+async function sendTemplate(to, name = "Customer") {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+
+    const response = await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "intial_template_duplicate", // ✅ Updated template name
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: name }, // Replaces {{1}}
+              ],
+            },
+          ],
+        },
+      },
+      { headers }
+    );
+
+    const messageId = response.data.messages?.[0]?.id;
+    console.log(`✅ Template sent to ${to} (id: ${messageId})`);
+
+    // 🔹 Log in Google Sheet
+    await logAction(to, name, "Template Sent", `MessageId: ${messageId}`);
+  } catch (err) {
+    console.error("❌ Failed to send template:", err.response?.data || err.message);
+  }
 }
+
 
 // Trigger proactive template sending
 app.get("/send", async (req, res) => {
