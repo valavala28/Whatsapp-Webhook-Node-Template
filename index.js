@@ -2397,7 +2397,7 @@ async function sendTemplate(to, name = "Customer") {
     const headers = { Authorization: `Bearer ${TOKEN}` };
 
     const response = await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
       {
         messaging_product: "whatsapp",
         to,
@@ -2541,7 +2541,7 @@ async function sendText(to, text, opts = {}) {
     if (opts.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
 
     await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
       { messaging_product: "whatsapp", to, text: { body: text } },
       { headers }
     );
