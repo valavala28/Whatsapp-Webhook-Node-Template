@@ -2820,7 +2820,7 @@ app.get("/send", async (req, res) => {
   if (!phone || !message) {
     return res
       .status(400)
-      .send("❌ Phone & message required. Example: /send?phone=918897019101&message=Hello");
+      .send("❌ Phone & message required. Example: /send?phone=917997692827&message=Hello");
   }
 
   await sendText(phone, message);
