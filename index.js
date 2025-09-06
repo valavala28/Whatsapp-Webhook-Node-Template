@@ -2389,7 +2389,7 @@ async function sendTemplate(to, name = "Customer") {
   } catch (err) {
     console.error("❌ Failed to send template:", err.response?.data || err.message);
   }
-}*/
+}
 
 //-------------------- Send Template proactively --------------------
 async function sendTemplate(to, name = "Customer") {
@@ -2426,7 +2426,80 @@ async function sendTemplate(to, name = "Customer") {
   } catch (err) {
     console.error("❌ Failed to send template:", err.response?.data || err.message);
   }
+}*/
+
+
+//-------------------- Send Template proactively --------------------
+async function sendTemplate(to, name = "Customer") {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+
+    const response = await axios.post(
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "intial_template_duplicate", // ✅ Exact approved template name
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: name }, // Replaces {{1}}
+              ],
+            },
+          ],
+        },
+      },
+      { headers }
+    );
+
+    const messageId = response.data.messages?.[0]?.id;
+    console.log(`✅ Template sent to ${to} (id: ${messageId})`);
+
+    // 🔹 Log in Google Sheet
+    await logAction(to, name, "Template Sent", `MessageId: ${messageId}`);
+    return { success: true, messageId };
+  } catch (err) {
+    const errData = err.response?.data || err.message;
+    console.error("❌ Failed to send template:", errData);
+
+    // Provide clear feedback if user is not opted-in
+    if (
+      errData.error?.message?.includes("Recipient not opted-in") ||
+      errData.error?.message?.includes("Invalid parameter")
+    ) {
+      console.warn(`⚠️ ${to} is not opted-in or template not approved`);
+    }
+
+    await logAction(to, name, "Template Failed", JSON.stringify(errData));
+    return { success: false, error: errData };
+  }
 }
+
+// Trigger proactive template sending
+app.get("/send", async (req, res) => {
+  const { phone, name } = req.query;
+
+  if (!phone) {
+    return res
+      .status(400)
+      .send("❌ Phone number is required. Example: /send?phone=918897019101&name=Rajeswari");
+  }
+
+  const result = await sendTemplate(phone, name || "Customer");
+
+  if (result.success) {
+    res.send(`✅ Template sent to ${phone}`);
+  } else {
+    res
+      .status(400)
+      .send(`❌ Failed to send template to ${phone}: ${JSON.stringify(result.error)}`);
+  }
+});
+
 
 
 // Trigger proactive template sending
