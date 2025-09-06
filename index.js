@@ -2391,7 +2391,7 @@ async function sendTemplate(to, name = "Customer") {
   }
 }*/
 
-// -------------------- Send Template proactively --------------------
+/*-------------------- Send Template proactively --------------------
 async function sendTemplate(to, name = "Customer") {
   try {
     const headers = { Authorization: `Bearer ${TOKEN}` };
@@ -2778,5 +2778,249 @@ app.post("/webhook", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
+
+
+
+
+// Project data
+const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    details: `🏢 *Abode Aravindam – Tellapur*\n
+📌 Project Overview:
+Welcome to Abode Aravindam – a premium gated community spanning 5.27 acres. 
+This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, blending contemporary luxury with serene living.
+
+🌟 Why Choose Abode Aravindam?
+• Spacious layouts with abundant natural light & ventilation
+• Prime location near schools, hospitals, shopping & transport hubs
+
+🏡 Exclusive Amenities:
+• Private Theatre for immersive entertainment
+• Stylish Club House & Banquet Hall for gatherings
+• State-of-the-art Gym & Landscaped Walking Trails
+
+🛋 Unit Plans:
+• Spacious Layouts – Efficient interiors for seamless movement
+• Ample Natural Light & Ventilation – Large windows & open balconies
+• Smart Design – Living, dining & kitchen areas for an effortless lifestyle
+• Premium Finishes – Elegant fittings & aesthetics
+
+📍 Location: Tellapur  ( Abode Aravindam  https://maps.app.goo.gl/X7zC73xRM1SDnXuh8?g_st=aw )
+📐 Property Area: 5.27 Acres
+🆔 RERA No: P01100005069
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
+💰 Starting From: ₹92 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
+📌 Project Overview:
+Discover a life where the calm of nature meets city convenience. 
+An exclusive gated community beside Pedda Cheruvu Lake.
+Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
+
+🌟 Why Choose MJ Lakeview Heights?
+• Serene lake-view location
+• Close to top schools, hospitals, shopping & transit routes
+• Elegant and spacious homes designed for comfort
+
+🏡 Amenities & Unit Plans:
+• First Floor – Banquet hall & guest rooms
+• Second Floor – Yoga/meditation area, conference room, indoor games
+• 18 Units Per Floor – Balanced community with privacy
+• Elegant Clubhouse – Recreation & community bonding
+
+📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
+📐 Property Area: 1.5 Acres
+🆔 RERA No: P01100009015
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
+💰 Starting From: ₹82 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+    },
+  },
+   "3": {
+    name: "MJ Lakeview  – Ameenpur",
+      details: `📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )`,
+      brochure: {
+      "2BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+      "3BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+    },
+    },
+};
+
+
+// ----------------- HELPERS -----------------
+async function sendText(to, text) {
+  return axios.post(
+    `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body: text },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+async function sendTemplate(to, templateName, lang = "en_US", components = []) {
+  return axios.post(
+    `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: templateName, // must be approved in WhatsApp Business Manager
+        language: { code: lang },
+        components,
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+async function sendMainMenu(to, name) {
+  await sendText(
+    to,
+    `👋 Hi ${name}, welcome to Abode Projects!\n\nPlease choose an option:\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit`
+  );
+}
+
+async function logAction(user, name, action, details) {
+  console.log(`📒 [${user}] ${name} - ${action}: ${details}`);
+}
+
+// ----------------- WEBHOOK -----------------
+app.post("/webhook", async (req, res) => {
+  try {
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const message = changes?.value?.messages?.[0];
+    if (!message) return res.sendStatus(200);
+
+    const from = message.from;
+    const name = message.profile?.name || "Customer";
+    const rawText = message.text?.body?.trim() || "";
+    const text = rawText.toLowerCase();
+
+    if (!sessions[from]) sessions[from] = { stage: "main" };
+    const userSession = sessions[from];
+
+    // Reset menu
+    if (text === "menu") {
+      userSession.stage = "main";
+
+      // Use template for reliability
+      await sendTemplate(from, "main_menu_template"); 
+      // Or fallback text if inside 24h: await sendMainMenu(from, name);
+
+      return res.sendStatus(200);
+    }
+
+    // ----------------- MAIN MENU -----------------
+    if (userSession.stage === "main") {
+      if (["1", "2", "3", "4"].includes(text)) {
+        if (text === "1") {
+          await sendText(
+            from,
+            `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}\n3️⃣ ${PROJECTS["3"].name}`
+          );
+          userSession.stage = "project_selection";
+          await logAction(from, name, "Viewed Projects", "List of projects displayed");
+        } else if (text === "2") {
+          await sendTemplate(from, "talk_to_expert_template");
+          await logAction(from, name, "Talked to Expert", "User requested expert contact");
+        } else if (text === "3") {
+          await sendText(
+            from,
+            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+              .map(
+                ([, p]) =>
+                  `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`
+              )
+              .join("\n\n")}`
+          );
+          await logAction(from, name, "Downloaded Brochure", "All project brochures sent");
+        } else if (text === "4") {
+          await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+          await logAction(from, name, "Booked Site Visit", "Site visit link shared");
+        }
+      } else {
+        await sendText(
+          from,
+          `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`
+        );
+        await logAction(from, name, "Custom Query", rawText);
+      }
+    }
+
+    // ----------------- PROJECT SELECTION -----------------
+    else if (userSession.stage === "project_selection") {
+      if (["1", "2", "3"].includes(text)) {
+        const project = PROJECTS[text];
+        await sendText(
+          from,
+          `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`
+        );
+        userSession.stage = "project_details";
+        userSession.selectedProject = text;
+      } else {
+        await sendText(from, "❌ Invalid option. Please reply with 1,2 or 3.");
+      }
+    }
+
+    // ----------------- PROJECT DETAILS -----------------
+    else if (userSession.stage === "project_details") {
+      const project = PROJECTS[userSession.selectedProject];
+      if (text === "1") {
+        await sendTemplate(from, "talk_to_expert_template");
+        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`);
+        delete sessions[from];
+      } else if (text === "2") {
+        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`);
+        delete sessions[from];
+      } else if (text === "3") {
+        await sendText(
+          from,
+          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`
+        );
+        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}, Brochure sent`);
+        delete sessions[from];
+      } else {
+        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+      }
+    }
+
+    await logAction(from, name, "Message", rawText);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+// ----------------- SERVER -----------------
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
