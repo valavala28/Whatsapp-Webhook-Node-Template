@@ -613,6 +613,13 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
       }
+      
+    // ✅ Reset timer BEFORE deleting session
+    resetTimer(from, name);
+
+    // Don't delete immediately; resetTimer will clean up after 2 minutes
+    userSession.stage = "done"; // optional, marks session finished
+}
     }   
     await logAction(from, name, "Message", rawText);
     res.sendStatus(200);
