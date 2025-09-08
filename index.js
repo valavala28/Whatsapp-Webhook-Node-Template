@@ -857,50 +857,52 @@ app.post("/webhook", async (req, res) => {
     userSession.lastMessageId = messageId;
     resetTimer(from, name);
 
-    // Main Menu
+       // -------------------- Main Menu --------------------
     if (userSession.stage === "main") {
       if (["1", "2", "3", "4"].includes(text)) {
         if (text === "1") {
-          const msgTxt = `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}\n3️⃣ ${PROJECTS["3"].name}`;
-          const id = await sendText(from, msgTxt);
+          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
           userSession.stage = "project_selection";
-          await logAction(from, name, "Viewed Projects", "List of projects displayed", id, "project_selection");
+          await logAction(from, name, "Viewed Projects", "List of projects displayed");
         } else if (text === "2") {
-          const id = await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
-          await logAction(from, name, "Talked to Expert", "Expert contact shared", id, "main");
+          await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
+          await logAction(from, name, "Talked to Expert", "User requested expert contact");
         } else if (text === "3") {
-          const msgTxt = `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-            .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
-            .join("\n\n")}`;
-          const id = await sendText(from, msgTxt);
-          await logAction(from, name, "Downloaded Brochure", "All brochures sent", id, "main");
+          await sendText(
+            from,
+            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+              .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
+              .join("\n\n")}`
+          );
+          await logAction(from, name, "Downloaded Brochure", "All project brochures sent");
         } else if (text === "4") {
-          const id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-          await logAction(from, name, "Booked Site Visit", "Site visit link shared", id, "main");
+          await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+          await logAction(from, name, "Booked Site Visit", "Site visit link shared");
         }
       } else {
-        const id = await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
-        await logAction(from, name, "Custom Query", rawText, id, "main");
+        await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
+        await logAction(from, name, "Custom Query", rawText);
       }
     }
 
-    // Project Selection
+    // -------------------- Project Selection --------------------
     else if (userSession.stage === "project_selection") {
-      if (["1", "2", "3"].includes(text)) {
+      if (["1", "2"].includes(text)) {
         const project = PROJECTS[text];
-        const msgTxt = `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`;
-        const id = await sendText(from, msgTxt);
+        const msgTxt = `✅ You selected *${project.name}*.\n\nReply with:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`;
+        await sendText(from, msgTxt);
         userSession.stage = "project_details";
         userSession.selectedProject = text;
-        await logAction(from, name, "Viewed Project Details", project.name, id, "project_details");
+        await logAction(from, name, "Viewed Project Details", project.name);
       } else {
-        await sendText(from, "❌ Invalid option. Please reply with 1, 2, or 3.");
+        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
       }
     }
 
-    // Project Details
+    // -------------------- Project Details --------------------
     else if (userSession.stage === "project_details") {
       const project = PROJECTS[userSession.selectedProject];
+
       if (text === "1") {
         const id = await sendText(from, "📞 Call us: +91-8008312211");
         await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`, id, "project_details");
@@ -914,10 +916,11 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
       }
+
+      // End session after handling project details
       userSession.stage = "done";
     }
 
-    await logAction(from, name, "Message", rawText, messageId, userSession.stage);
     res.sendStatus(200);
   } catch (err) {
     console.error("❌ Webhook error:", err.message);
