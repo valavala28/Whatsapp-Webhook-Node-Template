@@ -643,6 +643,7 @@ const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWS
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
 
 // -------------------- Project Data --------------------
+// Project data
 const PROJECTS = {
   "1": {
     name: "Abode Aravindam – Tellapur",
@@ -660,11 +661,21 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
 • Stylish Club House & Banquet Hall for gatherings
 • State-of-the-art Gym & Landscaped Walking Trails
 
-📍 Location: Tellapur
+🛋 Unit Plans:
+• Spacious Layouts – Efficient interiors for seamless movement
+• Ample Natural Light & Ventilation – Large windows & open balconies
+• Smart Design – Living, dining & kitchen areas for an effortless lifestyle
+• Premium Finishes – Elegant fittings & aesthetics
+
+📍 Location: Tellapur  ( Abode Aravindam  https://maps.app.goo.gl/X7zC73xRM1SDnXuh8?g_st=aw )
+📐 Property Area: 5.27 Acres
+🆔 RERA No: P01100005069
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
 💰 Starting From: ₹92 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://bit.ly/3I4xOLr",
-      "3BHK": "https://bit.ly/3I4xOLr",
+      "2BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
     },
   },
   "2": {
@@ -672,24 +683,43 @@ This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, 
     details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
 📌 Project Overview:
 Discover a life where the calm of nature meets city convenience. 
+An exclusive gated community beside Pedda Cheruvu Lake.
 Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
 
 🌟 Why Choose MJ Lakeview Heights?
 • Serene lake-view location
 • Close to top schools, hospitals, shopping & transit routes
+• Elegant and spacious homes designed for comfort
 
-📍 Location: Ameenpur
+🏡 Amenities & Unit Plans:
+• First Floor – Banquet hall & guest rooms
+• Second Floor – Yoga/meditation area, conference room, indoor games
+• 18 Units Per Floor – Balanced community with privacy
+• Elegant Clubhouse – Recreation & community bonding
+
+📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
+📐 Property Area: 1.5 Acres
+🆔 RERA No: P01100009015
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
 💰 Starting From: ₹82 Lakhs Onwards`,
     brochure: {
-      "2BHK": "https://bit.ly/4lMCkMg",
-      "3BHK": "https://bit.ly/45TCVWN",
+      "2BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
     },
   },
+   "3": {
+    name: "MJ Lakeview  – Ameenpur",
+      details: `📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )`,
+      brochure: {
+      "2BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+      "3BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+    },
+    },
 };
 
-// -------------------- Session & Duplicate Tracking --------------------
+// In-memory sessions
 const sessions = {};
-const processedMessages = new Set();
 
 // -------------------- Utilities --------------------
 function interpretInput(input) {
@@ -732,6 +762,7 @@ async function logAction(phone, name, action, details = "") {
   }
 }
 
+// Utility: Greeting based on IST
 function getGreeting() {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const hour = now.getHours();
@@ -740,29 +771,58 @@ function getGreeting() {
   return "Good Evening";
 }
 
-// -------------------- Reset Timer --------------------
+// Reset inactivity timer with thank-you message
 function resetTimer(phone, name) {
-  if (!sessions[phone]) return;
+  if (!sessions[phone]) sessions[phone] = { name, hasThanked: false, timer: null, lastMessageId: null };
 
   const session = sessions[phone];
+
   if (session.hasThanked) return;
 
-  if (session.timer) clearTimeout(session.timer);
+  if (session.timer) {
+    clearTimeout(session.timer);
+    session.timer = null;
+  }
 
   session.timer = setTimeout(async () => {
+    const s = sessions[phone];
+    if (!s) return;
+    if (s.hasThanked) return;
+
+    s.hasThanked = true;
+    const idemKey = s.lastMessageId ? `ty-${phone}-${s.lastMessageId}` : `ty-${phone}-${Date.now()}`;
+
     try {
-      await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
-      console.log(`✅ Thank-you message sent to ${phone}`);
+      await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`, {
+        idempotencyKey: idemKey,
+      });
+      console.log(`✅ Sent thank-you message to ${phone}`);
     } catch (err) {
       console.error("❌ Error sending thank-you:", err?.message || err);
     } finally {
-      session.hasThanked = true;
-      clearTimeout(session.timer);
-      delete sessions[phone]; // cleanup
+      if (s.timer) clearTimeout(s.timer);
+      delete sessions[phone];
     }
-  }, 2 * 60 * 1000); // 2 minutes
+  }, 2 * 60 * 1000);
 }
 
+
+async function logAction(phone, name, action, details = "") {
+  try {
+    if (!GOOGLE_SCRIPT_URL) return;
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      userPhone: phone,
+      customerName: name,
+      action,
+      details,
+    });
+    console.log(`✅ Logged: ${action} - ${details}`);
+  } catch (error) {
+    console.error("❌ Logging failed:", error.response?.data || error.message);
+  }
+}
+
+ 
 // -------------------- Main Menu --------------------
 function sendMainMenu(to, name) {
   sendText(
@@ -821,68 +881,69 @@ app.post("/webhook", async (req, res) => {
 
     resetTimer(from, name); // always reset timer on every message
 
-    // -------------------- Main Menu --------------------
+  
+
+    // Main Menu
     if (userSession.stage === "main") {
       if (["1", "2", "3", "4"].includes(text)) {
         if (text === "1") {
-          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
+          const msg = `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}\n3️⃣ ${PROJECTS["3"].name}`;
+          const id = await sendText(from, msg);
           userSession.stage = "project_selection";
-          await logAction(from, name, "Viewed Projects", "List of projects displayed");
+          await logAction(from, name, "Viewed Projects", "List of projects displayed", id, "project_selection");
         } else if (text === "2") {
-          await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
-          await logAction(from, name, "Talked to Expert", "User requested expert contact");
+          const id = await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
+          await logAction(from, name, "Talked to Expert", "Expert contact shared", id, "main");
         } else if (text === "3") {
-          await sendText(
-            from,
-            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
-              .map(([_, p]) => `${p.name}:\n2BHK\n${p.brochure["2BHK"]}\n3BHK\n${p.brochure["3BHK"]}`)
-              .join("\n\n")}`
-          );
-          await logAction(from, name, "Downloaded Brochure", "All project brochures sent");
+          const msg = `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+            .map(([_, p]) => `${p.name}:\n\n2BHK\n${p.brochure["2BHK"]}\n\n3BHK\n${p.brochure["3BHK"]}`)
+            .join("\n\n")}`;
+          const id = await sendText(from, msg);
+          await logAction(from, name, "Downloaded Brochure", "All brochures sent", id, "main");
         } else if (text === "4") {
-          await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-          await logAction(from, name, "Booked Site Visit", "Site visit link shared");
+          const id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+          await logAction(from, name, "Booked Site Visit", "Site visit link shared", id, "main");
         }
       } else {
-        await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
-        await logAction(from, name, "Custom Query", rawText);
+        const id = await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
+        await logAction(from, name, "Custom Query", rawText, id, "main");
       }
     }
 
-    // -------------------- Project Selection --------------------
+    // Project Selection
     else if (userSession.stage === "project_selection") {
-      if (["1", "2"].includes(text)) {
+      if (["1", "2", "3"].includes(text)) {
         const project = PROJECTS[text];
-        await sendText(
-          from,
-          `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`
-        );
+        const msg = `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`;
+        const id = await sendText(from, msg);
         userSession.stage = "project_details";
         userSession.selectedProject = text;
+        await logAction(from, name, "Viewed Project Details", project.name, id, "project_details");
       } else {
-        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
+        await sendText(from, "❌ Invalid option. Please reply with 1, 2, or 3.");
       }
     }
 
-    // -------------------- Project Details --------------------
+    // Project Details
     else if (userSession.stage === "project_details") {
       const project = PROJECTS[userSession.selectedProject];
       if (text === "1") {
-        await sendText(from, "📞 Call us: +91-8008312211");
-        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`);
+        const id = await sendText(from, "📞 Call us: +91-8008312211");
+        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`, id, "project_details");
+        delete sessions[from];
       } else if (text === "2") {
-        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`);
+        const id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`, id, "project_details");
+        delete sessions[from];
       } else if (text === "3") {
-        await sendText(
-          from,
-          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n3BHK\n${project.brochure["3BHK"]}`
-        );
-        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}, Brochure sent`);
+        const msg = `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`;
+        const id = await sendText(from, msg);
+        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}`, id, "project_details");
+        delete sessions[from];
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
-        return res.sendStatus(200);
       }
+    }
 
       // ✅ Stage finished, let resetTimer handle thank-you and session cleanup
       userSession.stage = "done";
