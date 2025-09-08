@@ -734,7 +734,7 @@ async function sendText(to, message, idempotencyKey = null) {
   }
 }
 
-// Send WhatsApp template message (hello_world_main)
+/* Send WhatsApp template message (hello_world_main)
 async function sendHelloWorldTemplate(to, name = "Customer") {
   try {
     const headers = { Authorization: `Bearer ${TOKEN}` };
@@ -770,6 +770,48 @@ async function sendHelloWorldTemplate(to, name = "Customer") {
     console.log(`✅ Template 'hello_world_main' sent to ${to}`);
   } catch (err) {
     console.error("❌ Failed to send hello_world_main template:", err.response?.data || err.message);
+  }
+}*/
+
+
+// Send WhatsApp template message (hello_world_main) with proper error handling
+async function sendHelloWorldTemplate(to, name = "Customer") {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+
+    const response = await axios.post(
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: "hello_world_main",
+          language: { code: "en_US" },
+          components: [
+            { type: "body", parameters: [{ type: "text", text: name }] }
+          ]
+        }
+      },
+      { headers }
+    );
+
+    const messageId = response.data.messages?.[0]?.id;
+    if (!messageId) {
+      console.error("❌ Template sent but no message ID returned:", response.data);
+      return null;
+    }
+
+    console.log(`✅ Template 'hello_world_main' sent to ${to}. Message ID: ${messageId}`);
+    return messageId;
+
+  } catch (err) {
+    if (err.response?.data) {
+      console.error("❌ Failed to send template:", JSON.stringify(err.response.data, null, 2));
+    } else {
+      console.error("❌ Failed to send template:", err.message);
+    }
+    return null;
   }
 }
 
