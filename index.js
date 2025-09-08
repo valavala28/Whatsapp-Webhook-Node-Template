@@ -302,7 +302,7 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -318,7 +318,7 @@ async function sendTemplate(to, name = "Customer") {
     const headers = { Authorization: `Bearer ${TOKEN}` };
 
     await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`,
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
       {
         messaging_product: "whatsapp",
         to,
