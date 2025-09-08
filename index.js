@@ -76,7 +76,7 @@ app.get("/send", async (req, res) => {
 
 
 
-/*const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 
@@ -434,7 +434,7 @@ app.post("/webhook", async (req, res) => {
 /*app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 // Start server
-/*app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
 
 
@@ -1969,7 +1969,7 @@ app.get("/debug/conversation/:conversationId", async (req, res) => {
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));*/
 
 
-//Main code
+/*Main code
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -2337,7 +2337,8 @@ app.post("/webhook", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
+
 
 
 
