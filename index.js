@@ -943,7 +943,6 @@ app.post("/webhook", async (req, res) => {
       } else {
         await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
       }
-    }
 
       // ✅ Stage finished, let resetTimer handle thank-you and session cleanup
       userSession.stage = "done";
