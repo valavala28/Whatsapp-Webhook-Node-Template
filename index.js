@@ -770,7 +770,7 @@ function getGreeting() {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const hour = now.getHours();
   if (hour < 12) return "Good Morning";
-  if (hour < 17) return "Good Afternoon";
+  if (hour < 16) return "Good Afternoon";
   return "Good Evening";
 }
 
