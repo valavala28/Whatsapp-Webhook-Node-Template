@@ -639,7 +639,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // WhatsApp Cloud API credentials
 const PHONE_ID = "749224044936223";
-const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDwZAU3G0ZCf5pGaQe1oQdnfZC9P7ZAofdN9Kmpmko8ehthbuB8D9aGiSSK3Ii6V2HGXeC2Ia7Q4yZAQnj2ILie70mJhFhScyAWg63xHCXdMtmB9wZDZD";
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
 
 // -------------------- Project Data --------------------
