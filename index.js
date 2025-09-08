@@ -3545,7 +3545,7 @@ function resetTimer(phone, name) {
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
 
-const express = require("express");                                                                                                                          update this template code in the below index.js code                                                                                                                  const express = require("express");
+const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 
@@ -3559,7 +3559,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const PHONE_ID = "749224044936223";
 const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDw3E39upO2TbuW8IfGx94VuH7bJpFKngdyJOjexp6SN6wYEM0Ah6MOERatzhjeth0sHeo8GneT6kyXyaPyHZA94Exe9NKVJZBIisrxAZDZD";
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
-
 // -------------------- Send Template proactively --------------------
 async function sendTemplate(to, name = "Customer") {
   try {
