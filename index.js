@@ -619,8 +619,7 @@ app.post("/webhook", async (req, res) => {
 
     // Don't delete immediately; resetTimer will clean up after 2 minutes
     userSession.stage = "done"; // optional, marks session finished
-}
-    }   
+     
     await logAction(from, name, "Message", rawText);
     res.sendStatus(200);
   } catch (err) {
