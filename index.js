@@ -5,10 +5,13 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 // WhatsApp Cloud API credentials
-const PHONE_ID = process.env.PHONE_ID;
-const TOKEN = process.env.WHATSAPP_TOKEN;
-const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPYTTbCZCrJMVNBirLficTg0dCVtrJvFFnjuyVsxLCbMG5iNZAnFa5IRbiXo011rMOYc7BjyFW2wZAU3G0ZCf5pGaQe1oQdnfZC9P7ZAofdN9Kmpmko8ehthbuB8D9aGiSSK3Ii6V2HGXeC2Ia7Q4yZAQnj2ILie70mJhFhScyAWg63xHCXdMtmB9wZDZD";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
 
 // In-memory sessions
 const sessions = {};
