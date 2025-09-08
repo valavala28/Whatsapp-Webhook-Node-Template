@@ -720,6 +720,9 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 
 // In-memory sessions
 const sessions = {};
+// Track processed message IDs to avoid duplicates
+const processedMessages = new Set();
+
 
 // -------------------- Utilities --------------------
 function interpretInput(input) {
