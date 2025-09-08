@@ -635,7 +635,7 @@ app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
 
 
-/*main code for user messaging first then send the details
+//main code for user messaging first then send the details
 const express = require("express");
 const axios = require("axios");
 
@@ -931,11 +931,11 @@ app.post("/webhook", async (req, res) => {
 
 
 // Start server
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 
@@ -1235,7 +1235,7 @@ app.get("/send-hello", async (req, res) => {
 });
 
 // -------------------- Start Server --------------------
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
 
 
