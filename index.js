@@ -738,6 +738,7 @@ async function sendText(to, message, idempotencyKey = null) {
 async function sendHelloWorldTemplate(to, name = "Customer") {
   try {
     const headers = { Authorization: `Bearer ${TOKEN}` };
+
     await axios.post(
       `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
       {
@@ -748,17 +749,30 @@ async function sendHelloWorldTemplate(to, name = "Customer") {
           name: "hello_world_main",
           language: { code: "en_US" },
           components: [
-            { type: "body", parameters: [{ type: "text", text: name }] }
+            { 
+              type: "header", 
+              parameters: [{ type: "text", text: "ABODE CONSTRUCTIONS" }] 
+            },
+            { 
+              type: "body", 
+              parameters: [{ type: "text", text: name }] 
+            },
+            { 
+              type: "footer", 
+              parameters: [{ type: "text", text: "Your journey to a new home starts here" }] 
+            }
           ]
         }
       },
       { headers }
     );
+
     console.log(`✅ Template 'hello_world_main' sent to ${to}`);
   } catch (err) {
     console.error("❌ Failed to send hello_world_main template:", err.response?.data || err.message);
   }
 }
+
 
 // Log actions into Google Sheet
 async function logAction(phone, name, action, details = "", messageId = "", stage = "") {
@@ -988,13 +1002,24 @@ app.post("/webhook", async (req, res) => {
 // -------------------- Trigger Template Manually --------------------
 app.get("/send-hello", async (req, res) => {
   const { phone, name } = req.query;
-  if (!phone) return res.status(400).send("❌ Phone number is required. Example: /send-hello?phone=918897019101&name=Rajeswari");
+  if (!phone) 
+    return res.status(400).send("❌ Phone number is required. Example: /send-hello?phone=918897019101&name=Rajeswari");
 
+  // Send the template message
   await sendHelloWorldTemplate(phone, name || "Customer");
-  sessions[phone] = { name: name || "Customer", stage: "waiting_for_reply" };
+
+  // Initialize session to wait for YES reply
+  sessions[phone] = { 
+    name: name || "Customer", 
+    stage: "waiting_for_reply" 
+  };
+
+  // Log the action
+  await logAction(phone, name || "Customer", "Template Sent", "hello_world_main sent, waiting for reply");
 
   res.send(`✅ 'hello_world_main' template sent to ${phone}. Waiting for user reply.`);
 });
-
 // -------------------- Start Server --------------------
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+
