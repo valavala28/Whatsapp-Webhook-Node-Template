@@ -299,7 +299,7 @@ app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
 
 
-//Main code
+/*Main code
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -623,7 +623,282 @@ app.post("/webhook", async (req, res) => {
 });
 
 // Start server
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
+
+
+
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// WhatsApp Cloud API credentials
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPJQYNQUkuVrUfVt0rjtNIaZBNVO7C24ZC5b5RO4DJKQOVZC5NWSeiknzZBrDec88QkAYYji7ypvDBgL1GDwZAU3G0ZCf5pGaQe1oQdnfZC9P7ZAofdN9Kmpmko8ehthbuB8D9aGiSSK3Ii6V2HGXeC2Ia7Q4yZAQnj2ILie70mJhFhScyAWg63xHCXdMtmB9wZDZD";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
+
+// -------------------- Project Data --------------------
+const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    details: `🏢 *Abode Aravindam – Tellapur*\n
+📌 Project Overview:
+Welcome to Abode Aravindam – a premium gated community spanning 5.27 acres. 
+This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, blending contemporary luxury with serene living.
+
+🌟 Why Choose Abode Aravindam?
+• Spacious layouts with abundant natural light & ventilation
+• Prime location near schools, hospitals, shopping & transport hubs
+
+🏡 Exclusive Amenities:
+• Private Theatre for immersive entertainment
+• Stylish Club House & Banquet Hall for gatherings
+• State-of-the-art Gym & Landscaped Walking Trails
+
+📍 Location: Tellapur
+💰 Starting From: ₹92 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://bit.ly/3I4xOLr",
+      "3BHK": "https://bit.ly/3I4xOLr",
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
+📌 Project Overview:
+Discover a life where the calm of nature meets city convenience. 
+Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
+
+🌟 Why Choose MJ Lakeview Heights?
+• Serene lake-view location
+• Close to top schools, hospitals, shopping & transit routes
+
+📍 Location: Ameenpur
+💰 Starting From: ₹82 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://bit.ly/4lMCkMg",
+      "3BHK": "https://bit.ly/45TCVWN",
+    },
+  },
+};
+
+// -------------------- Session & Duplicate Tracking --------------------
+const sessions = {};
+const processedMessages = new Set();
+
+// -------------------- Utilities --------------------
+function interpretInput(input) {
+  const t = (input || "").toLowerCase().trim();
+  if (["1", "projects", "project", "view projects"].includes(t)) return "1";
+  if (["2", "expert", "talk", "call", "talk to expert"].includes(t)) return "2";
+  if (["3", "brochure", "pdf", "download", "download brochure"].includes(t)) return "3";
+  if (["4", "visit", "site", "book", "book a site visit"].includes(t)) return "4";
+  return t;
+}
+
+async function sendText(to, text, opts = {}) {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+    if (opts.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+
+    await axios.post(
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
+      { messaging_product: "whatsapp", to, text: { body: text } },
+      { headers }
+    );
+    console.log(`✅ Message sent to ${to}`);
+  } catch (error) {
+    console.error("❌ Failed to send message:", error.response?.data || error.message);
+  }
+}
+
+async function logAction(phone, name, action, details = "") {
+  try {
+    if (!GOOGLE_SCRIPT_URL) return;
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      userPhone: phone,
+      customerName: name,
+      action,
+      details,
+    });
+    console.log(`✅ Logged: ${action} - ${details}`);
+  } catch (error) {
+    console.error("❌ Logging failed:", error.response?.data || error.message);
+  }
+}
+
+function getGreeting() {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const hour = now.getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+// -------------------- Reset Timer --------------------
+function resetTimer(phone, name) {
+  if (!sessions[phone]) return;
+
+  const session = sessions[phone];
+  if (session.hasThanked) return;
+
+  if (session.timer) clearTimeout(session.timer);
+
+  session.timer = setTimeout(async () => {
+    try {
+      await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
+      console.log(`✅ Thank-you message sent to ${phone}`);
+    } catch (err) {
+      console.error("❌ Error sending thank-you:", err?.message || err);
+    } finally {
+      session.hasThanked = true;
+      clearTimeout(session.timer);
+      delete sessions[phone]; // cleanup
+    }
+  }, 2 * 60 * 1000); // 2 minutes
+}
+
+// -------------------- Main Menu --------------------
+function sendMainMenu(to, name) {
+  sendText(
+    to,
+    `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`
+  );
+}
+
+// -------------------- Webhook --------------------
+app.get("/", (req, res) => res.send("✅ WhatsApp Webhook is live"));
+
+// Verify webhook
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = "Abode@14";
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("WEBHOOK_VERIFIED");
+    return res.status(200).send(challenge);
+  }
+  res.sendStatus(403);
+});
+
+// Handle incoming messages
+app.post("/webhook", async (req, res) => {
+  try {
+    const body = req.body;
+    const entry = body.entry?.[0]?.changes?.[0]?.value;
+    const msg = entry?.messages?.[0];
+    const contact = entry?.contacts?.[0];
+
+    if (!msg) return res.sendStatus(200);
+
+    const messageId = msg.id;
+    if (processedMessages.has(messageId)) return res.sendStatus(200);
+    processedMessages.add(messageId);
+
+    const from = msg.from;
+    const name = contact?.profile?.name || "Customer";
+    const rawText = msg.text?.body?.trim() || "";
+    const text = interpretInput(rawText);
+
+    // Initialize session if first message
+    if (!sessions[from]) {
+      sessions[from] = { name, stage: "main", hasThanked: false, timer: null, lastMessageId: messageId };
+      sendMainMenu(from, name);
+      await logAction(from, name, "Started Chat");
+      resetTimer(from, name);
+      return res.sendStatus(200);
+    }
+
+    const userSession = sessions[from];
+    userSession.lastMessageId = messageId;
+
+    resetTimer(from, name); // always reset timer on every message
+
+    // -------------------- Main Menu --------------------
+    if (userSession.stage === "main") {
+      if (["1", "2", "3", "4"].includes(text)) {
+        if (text === "1") {
+          await sendText(from, `Available Projects:\n1️⃣ ${PROJECTS["1"].name}\n2️⃣ ${PROJECTS["2"].name}`);
+          userSession.stage = "project_selection";
+          await logAction(from, name, "Viewed Projects", "List of projects displayed");
+        } else if (text === "2") {
+          await sendText(from, "📞 Call us: +91-8008312211\n📧 Email: abodegroups3@gmail.com\n🌐 Website: https://abodegroups.com");
+          await logAction(from, name, "Talked to Expert", "User requested expert contact");
+        } else if (text === "3") {
+          await sendText(
+            from,
+            `📄 Brochure Links:\n\n${Object.entries(PROJECTS)
+              .map(([_, p]) => `${p.name}:\n2BHK\n${p.brochure["2BHK"]}\n3BHK\n${p.brochure["3BHK"]}`)
+              .join("\n\n")}`
+          );
+          await logAction(from, name, "Downloaded Brochure", "All project brochures sent");
+        } else if (text === "4") {
+          await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+          await logAction(from, name, "Booked Site Visit", "Site visit link shared");
+        }
+      } else {
+        await sendText(from, `✅ Hi ${name}, we received your query: "${rawText}". Our team will get back to you shortly!`);
+        await logAction(from, name, "Custom Query", rawText);
+      }
+    }
+
+    // -------------------- Project Selection --------------------
+    else if (userSession.stage === "project_selection") {
+      if (["1", "2"].includes(text)) {
+        const project = PROJECTS[text];
+        await sendText(
+          from,
+          `${project.details}\n\nWould you like to:\n1️⃣ Talk to Expert\n2️⃣ Book a Site Visit\n3️⃣ Download Brochure`
+        );
+        userSession.stage = "project_details";
+        userSession.selectedProject = text;
+      } else {
+        await sendText(from, "❌ Invalid option. Please reply with 1 or 2.");
+      }
+    }
+
+    // -------------------- Project Details --------------------
+    else if (userSession.stage === "project_details") {
+      const project = PROJECTS[userSession.selectedProject];
+      if (text === "1") {
+        await sendText(from, "📞 Call us: +91-8008312211");
+        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`);
+      } else if (text === "2") {
+        await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`);
+      } else if (text === "3") {
+        await sendText(
+          from,
+          `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n3BHK\n${project.brochure["3BHK"]}`
+        );
+        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}, Brochure sent`);
+      } else {
+        await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+        return res.sendStatus(200);
+      }
+
+      // ✅ Stage finished, let resetTimer handle thank-you and session cleanup
+      userSession.stage = "done";
+    }
+
+    await logAction(from, name, "Message", rawText);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+// Start server
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
 
 
 
