@@ -982,31 +982,49 @@ async function sendText(to, message, idempotencyKey = null) {
   }
 }
 
+// Send WhatsApp template message (hello_world_main)
 async function sendHelloWorldTemplate(to, name = "Customer") {
   try {
-    const headers = { Authorization: `Bearer ${TOKEN}` };
+    const headers = { 
+      Authorization: `Bearer ${TOKEN}`,
+      "Content-Type": "application/json"
+    };
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: "hello_world_main",   // ✅ must match your template name
+        language: { code: "en_US" }, // ✅ correct language code
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {
+                type: "text",
+                text: name || "SIR / MADAM" // ✅ fills {{1}}
+              }
+            ]
+          }
+        ]
+      }
+    };
+
     const res = await axios.post(
-      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to,
-        type: "template",
-        template: {
-          name: "hello_world_main",
-          language: { code: "en_US" },
-          components: [{ type: "body", parameters: [{ type: "text", text: name }] }],
-        },
-      },
+      `https://graph.facebook.com/v20.0/${PHONE_ID}/messages`,
+      payload,
       { headers }
     );
 
-    console.log(`✅ Template 'hello_world_main' sent to ${to}`, res.data);
-    return true;
+    console.log("✅ WhatsApp API Response:", JSON.stringify(res.data, null, 2));
+    return res.data;
   } catch (err) {
-    console.error("❌ Failed to send template:", err.response?.data || err.message);
-    return false;
+    console.error("❌ WhatsApp API Error:", err.response?.data || err.message);
+    return null;
   }
 }
+
 
 
 async function logAction(phone, name, action, details = "", messageId = "", stage = "") {
