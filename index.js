@@ -1140,29 +1140,24 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
 
 // -------------------- Webhook --------------------
 
-app.post("/webhook", (req, res) => {
-  const data = req.body;
+app.post("/webhook", async (req, res) => {
+  try {
+    const data = req.body;
 
-  if (data.object) {
-    data.entry.forEach(entry => {
-      const changes = entry.changes || [];
-      changes.forEach(change => {
-        if (change.value && change.value.messages) {
-          console.log("📩 Incoming message:", JSON.stringify(change.value.messages, null, 2));
-        }
-        if (change.value && change.value.statuses) {
-          console.log("📊 Message status update:", JSON.stringify(change.value.statuses, null, 2));
-        }
+    if (data.object) {
+      data.entry.forEach(entry => {
+        const changes = entry.changes || [];
+        changes.forEach(change => {
+          if (change.value && change.value.messages) {
+            console.log("📩 Incoming message:", JSON.stringify(change.value.messages, null, 2));
+          }
+          if (change.value && change.value.statuses) {
+            console.log("📊 Message status update:", JSON.stringify(change.value.statuses, null, 2));
+          }
+        });
       });
-    });
-  }
+    }
 
-  res.sendStatus(200);
-});
-
-
-
-    
     // New user → send template
     if (!sessions[from]) {
       await sendHelloWorldTemplate(from, name);
@@ -1172,8 +1167,14 @@ app.post("/webhook", (req, res) => {
       return res.sendStatus(200);
     }
 
-    const userSession = sessions[from];
-    resetInactivityTimer(from, name);
+    // ... rest of your logic ...
+    
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
 
     // -------------------- Waiting for YES --------------------
     if (userSession.stage === "waiting_for_reply") {
