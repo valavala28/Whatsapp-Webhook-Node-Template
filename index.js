@@ -1138,7 +1138,95 @@ Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intellig
   },
 };
 
-// -------------------- Webhook --------------------
+
+// -------------------- WEBHOOK --------------------
+app.post("/webhook", async (req, res) => {
+  try {
+    const data = req.body;
+
+    // ✅ Check if message event exists
+    if (!data.entry?.[0]?.changes?.[0]?.value?.messages) {
+      return res.sendStatus(200);
+    }
+
+    const message = data.entry[0].changes[0].value.messages[0];
+    const from = message.from; // user number
+    const text = message.text?.body?.trim().toLowerCase() || "";
+    const name = message.profile?.name || "User";
+
+    // ✅ Load or init user session
+    if (!sessions[from]) {
+      sessions[from] = { stage: "waiting_for_reply", data: {} };
+    }
+    const userSession = sessions[from];
+
+    // -------------------- Waiting for YES --------------------
+    if (userSession.stage === "waiting_for_reply") {
+      if (text === "yes") {
+        const msg = `${getGreeting()} ${name}! ✨ Welcome to our service.\n\n1️⃣ Explore Projects\n2️⃣ Contact Support\n\nPlease choose an option.`;
+        const id = await sendText(from, msg);
+        userSession.stage = "main_menu";
+        await logAction(from, name, "Start Flow", "Main menu sent", id, "main_menu");
+      } else {
+        await sendText(from, "Please reply YES to continue.");
+      }
+      return res.sendStatus(200);
+    }
+
+    // -------------------- Main Menu --------------------
+    if (userSession.stage === "main_menu") {
+      if (text === "1") {
+        const msg = `📂 Our Projects:\n1. Project A\n2. Project B\n\nChoose a project number.`;
+        const id = await sendText(from, msg);
+        userSession.stage = "projects";
+        await logAction(from, name, "Main Menu", "Projects listed", id, "projects");
+      } else if (text === "2") {
+        const msg = `📞 Contact Support:\nEmail: support@example.com\nPhone: +91 9876543210`;
+        const id = await sendText(from, msg);
+        await logAction(from, name, "Main Menu", "Support shared", id, "support");
+      } else {
+        await sendText(from, "Invalid choice. Please enter 1 or 2.");
+      }
+      return res.sendStatus(200);
+    }
+
+    // -------------------- Project Selection --------------------
+    if (userSession.stage === "projects") {
+      if (["1", "2"].includes(text)) {
+        const msg = `📑 Details for Project ${text}:\n- Overview: ...\n- Price: ...\n\nReply MENU to go back.`;
+        const id = await sendText(from, msg);
+        userSession.stage = "project_details";
+        await logAction(from, name, "Projects", `Project ${text} details shared`, id, "project_details");
+      } else {
+        await sendText(from, "Invalid project. Please enter 1 or 2.");
+      }
+      return res.sendStatus(200);
+    }
+
+    // -------------------- Project Details --------------------
+    if (userSession.stage === "project_details") {
+      if (text === "menu") {
+        const msg = `📋 Main Menu:\n1️⃣ Explore Projects\n2️⃣ Contact Support\n\nChoose an option.`;
+        const id = await sendText(from, msg);
+        userSession.stage = "main_menu";
+        await logAction(from, name, "Project Details", "Returned to main menu", id, "main_menu");
+      } else {
+        await sendText(from, "Reply MENU to go back to the main menu.");
+      }
+      return res.sendStatus(200);
+    }
+
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+
+
+/* -------------------- Webhook --------------------
 
 app.post("/webhook", async (req, res) => {
   try {
@@ -1257,7 +1345,7 @@ app.post("/webhook", async (req, res) => {
     console.error("❌ Webhook error:", err.message);
     res.sendStatus(500);
   }
-});
+});*/
 
 app.get("/send-hello", async (req, res) => {
   const { phone, name } = req.query;
