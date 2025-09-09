@@ -985,7 +985,7 @@ async function sendText(to, message, idempotencyKey = null) {
 async function sendHelloWorldTemplate(to, name = "Customer") {
   try {
     const headers = { Authorization: `Bearer ${TOKEN}` };
-    await axios.post(
+    const res = await axios.post(
       `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
       {
         messaging_product: "whatsapp",
@@ -999,11 +999,15 @@ async function sendHelloWorldTemplate(to, name = "Customer") {
       },
       { headers }
     );
-    console.log(`✅ Template 'hello_world_main' sent to ${to}`);
+
+    console.log(`✅ Template 'hello_world_main' sent to ${to}`, res.data);
+    return true;
   } catch (err) {
     console.error("❌ Failed to send template:", err.response?.data || err.message);
+    return false;
   }
 }
+
 
 async function logAction(phone, name, action, details = "", messageId = "", stage = "") {
   try {
@@ -1126,6 +1130,9 @@ app.post("/webhook", async (req, res) => {
     const text = rawText.toLowerCase();
     const messageId = msgEntry.id;
 
+
+
+    
     // New user → send template
     if (!sessions[from]) {
       await sendHelloWorldTemplate(from, name);
@@ -1221,18 +1228,22 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// -------------------- Trigger Template Manually --------------------
 app.get("/send-hello", async (req, res) => {
   const { phone, name } = req.query;
   if (!phone) return res.status(400).send("❌ Phone number is required. Example: /send-hello?phone=918897019101&name=Rajeswari");
 
-  await sendHelloWorldTemplate(phone, name || "Customer");
-  sessions[phone] = { name: name || "Customer", stage: "waiting_for_reply", thanked: false, timer: null };
-  await logAction(phone, name || "Customer", "Template Sent", "hello_world_main sent, waiting for reply");
-  resetInactivityTimer(phone, name || "Customer");
+  const success = await sendHelloWorldTemplate(phone, name || "Customer");
 
-  res.send(`✅ 'hello_world_main' template sent to ${phone}. Waiting for user reply.`);
+  if (success) {
+    sessions[phone] = { name: name || "Customer", stage: "waiting_for_reply", thanked: false, timer: null };
+    await logAction(phone, name || "Customer", "Template Sent", "hello_world_main sent, waiting for reply");
+    resetInactivityTimer(phone, name || "Customer");
+    res.send(`✅ 'hello_world_main' template sent to ${phone}. Waiting for user reply.`);
+  } else {
+    res.status(500).send("❌ Failed to send WhatsApp template. Check console logs for details.");
+  }
 });
+
 
 // -------------------- Start Server --------------------
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
