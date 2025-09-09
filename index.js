@@ -935,7 +935,7 @@ app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
 
 
 
-const express = require("express");
+/*const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 
@@ -1226,127 +1226,6 @@ app.post("/webhook", async (req, res) => {
 
 
 
-/* -------------------- Webhook --------------------
-
-app.post("/webhook", async (req, res) => {
-  try {
-    const data = req.body;
-
-    if (data.object) {
-      data.entry.forEach(entry => {
-        const changes = entry.changes || [];
-        changes.forEach(change => {
-          if (change.value && change.value.messages) {
-            console.log("📩 Incoming message:", JSON.stringify(change.value.messages, null, 2));
-          }
-          if (change.value && change.value.statuses) {
-            console.log("📊 Message status update:", JSON.stringify(change.value.statuses, null, 2));
-          }
-        });
-      });
-    }
-
-    // New user → send template
-    if (!sessions[from]) {
-      await sendHelloWorldTemplate(from, name);
-      sessions[from] = { name, stage: "waiting_for_reply", thanked: false, timer: null };
-      await logAction(from, name, "Template Sent", "hello_world_main sent, waiting for YES");
-      resetInactivityTimer(from, name);
-      return res.sendStatus(200);
-    }
-
-    // ... rest of your logic ...
-    
-  } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.sendStatus(500);
-  }
-});
-
-
-    // -------------------- Waiting for YES --------------------
-    if (userSession.stage === "waiting_for_reply") {
-      if (text === "yes") {
-        const msg = `${getGreeting()} ${name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`;
-        const id = await sendText(from, msg);
-        userSession.stage = "main_menu";
-        await logAction(from, name, "Start Flow", "Main menu sent", id, "main_menu");
-      } else {
-        await sendText(from, "Please reply YES to continue.");
-      }
-      return res.sendStatus(200);
-    }
-
-    // -------------------- Main Menu --------------------
-    if (userSession.stage === "main_menu") {
-      if (text === "1") {
-        const id = await sendText(from, `Available Projects:\n1️⃣ Abode Aravindam – Tellapur\n2️⃣ MJ Lakeview Heights – Ameenpur\n3️⃣ MJ Lakeview – Ameenpur`);
-        await logAction(from, name, "Viewed Projects", "List of projects displayed", id, "projects");
-        userSession.stage = "projects";
-      } else if (text === "2") {
-        const id = await sendText(from, "📞 Call us: +91-8008312211");
-        await logAction(from, name, "Talked to Expert", "Expert contact shared", id, "done");
-        userSession.stage = "done";
-      } else if (text === "3") {
-        const id = await sendText(from, "📄 Brochure Links:\nAbode Aravindam: https://link-to-aravindam\nMJ Lakeview Heights: https://link-to-lakeview");
-        await logAction(from, name, "Downloaded Brochure", "General brochures shared", id, "done");
-        userSession.stage = "done";
-      } else if (text === "4") {
-        const id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-        await logAction(from, name, "Booked Site Visit", "Site visit booking link shared", id, "done");
-        userSession.stage = "done";
-      } else {
-        const id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, 3, or 4.");
-        await logAction(from, name, "Invalid Choice", `User sent: ${rawText}`, id, "main_menu");
-      }
-      return res.sendStatus(200);
-    }
-
-    // -------------------- Project Selection --------------------
-    if (userSession.stage === "projects") {
-      if (["1", "2", "3"].includes(text)) {
-        const project = PROJECTS[text];
-        if (project) {
-          const id = await sendText(from, `📌 ${project.details}\n\nOptions:\n1️⃣ Talk to Expert\n2️⃣ Book Site Visit\n3️⃣ Download Brochure`);
-          await logAction(from, name, "Viewed Project Details", project.name, id, "project_details");
-          userSession.stage = "project_details";
-          userSession.selectedProject = text;
-        }
-      } else {
-        const id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
-        await logAction(from, name, "Invalid Choice", `User sent: ${rawText}`, id, "projects");
-      }
-      return res.sendStatus(200);
-    }
-
-    // -------------------- Project Details --------------------
-    if (userSession.stage === "project_details") {
-      const project = PROJECTS[userSession.selectedProject];
-      if (text === "1") {
-        const id = await sendText(from, "📞 Call us: +91-8008312211");
-        await logAction(from, name, "Talked to Expert", `Expert contact for ${project.name}`, id, "done");
-      } else if (text === "2") {
-        const id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
-        await logAction(from, name, "Booked Site Visit", `Site visit for ${project.name}`, id, "done");
-      } else if (text === "3") {
-        const msgTxt = `📄 Brochure Links:\n\n2BHK\n${project.brochure["2BHK"]}\n\n3BHK\n${project.brochure["3BHK"]}`;
-        const id = await sendText(from, msgTxt);
-        await logAction(from, name, "Downloaded Brochure", `Project: ${project.name}`, id, "done");
-      } else {
-        const id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
-        await logAction(from, name, "Invalid Choice", `User sent: ${rawText}`, id, "project_details");
-        return res.sendStatus(200);
-      }
-      userSession.stage = "done";
-      return res.sendStatus(200);
-    }
-
-  } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.sendStatus(500);
-  }
-});*/
-
 app.get("/send-hello", async (req, res) => {
   const { phone, name } = req.query;
   if (!phone) return res.status(400).send("❌ Phone number is required. Example: /send-hello?phone=918897019101&name=Rajeswari");
@@ -1365,10 +1244,333 @@ app.get("/send-hello", async (req, res) => {
 
 
 // -------------------- Start Server --------------------
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));*/
+
+
+
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// -------------------- Config --------------------
+const PHONE_ID = "749224044936223";
+const TOKEN = "EAARCCltZBVSgBPYTTbCZCrJMVNBirLficTg0dCVtrJvFFnjuyVsxLCbMG5iNZAnFa5IRbiXo011rMOYc7BjyFW2wZAU3G0ZCf5pGaQe1oQdnfZC9P7ZAofdN9Kmpmko8ehthbuB8D9aGiSSK3Ii6V2HGXeC2Ia7Q4yZAQnj2ILie70mJhFhScyAWg63xHCXdMtmB9wZDZD";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKwi4iXPptEb3uJuOcybGf41_zYu69VqPmDYNh8qi1RyMJfv2isgxaZfHh788Cfka78g/exec";
+
+// -------------------- In-memory sessions --------------------
+const sessions = {};
+
+// -------------------- Utilities --------------------
+function getGreeting() {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const hour = now.getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 16) return "Good Afternoon";
+  return "Good Evening";
+}
+
+async function sendText(to, message, idempotencyKey = null) {
+  try {
+    const headers = { Authorization: `Bearer ${TOKEN}` };
+    if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
+
+    const res = await axios.post(
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
+      { messaging_product: "whatsapp", to, type: "text", text: { body: message } },
+      { headers }
+    );
+    console.log(`✅ Message sent to ${to}`);
+    return res.data.messages?.[0]?.id || "";
+  } catch (err) {
+    console.error("❌ Error sending message:", err.response?.data || err.message);
+    return "";
+  }
+}
+
+async function sendHelloWorldTemplate(to, name = "Customer") {
+  try {
+    const headers = { 
+      Authorization: `Bearer ${TOKEN}`,
+      "Content-Type": "application/json"
+    };
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: "hello_world_main",
+        language: { code: "en_US" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: name || "SIR / MADAM" }
+            ]
+          }
+        ]
+      }
+    };
+
+    const res = await axios.post(
+      `https://graph.facebook.com/v23.0/${PHONE_ID}/messages`,
+      payload,
+      { headers }
+    );
+
+    console.log("✅ WhatsApp Template sent:", JSON.stringify(res.data, null, 2));
+    return res.data.messages?.[0]?.id || null;
+  } catch (err) {
+    console.error("❌ WhatsApp Template Error:", err.response?.data || err.message);
+    return null;
+  }
+}
+
+async function logAction(phone, name, action, details = "", messageId = "", stage = "") {
+  try {
+    const timestamp = new Date().toISOString();
+    await axios.post(GOOGLE_SCRIPT_URL, {
+      Timestamp: timestamp,
+      UserPhone: phone,
+      CustomerName: name,
+      Action: action,
+      Details: details,
+      MessageId: messageId,
+      Stage: stage,
+    });
+    console.log(`✅ Logged: ${action} - ${details}`);
+  } catch (err) {
+    console.error("❌ Failed to log action:", err.message);
+  }
+}
+
+// -------------------- Auto Thank You --------------------
+function resetInactivityTimer(phone, name) {
+  if (!sessions[phone]) return;
+  const session = sessions[phone];
+  if (session.thanked) return;
+
+  if (session.timer) clearTimeout(session.timer);
+
+  session.timer = setTimeout(async () => {
+    try {
+      const id = await sendText(phone, `🙏 Thank you ${name} for connecting with Abode Constructions. Have a great day! ✨`);
+      await logAction(phone, name, "Auto Thank You", "Sent after 2 min inactivity", id, "auto_thank_you");
+      session.thanked = true;
+      delete sessions[phone];
+      console.log(`✅ Auto thank-you sent to ${phone}`);
+    } catch (err) {
+      console.error("❌ Failed auto thank-you:", err.message);
+    }
+  }, 2 * 60 * 1000);
+}
+
+// -------------------- Project Data --------------------
+const PROJECTS = {
+  "1": {
+    name: "Abode Aravindam – Tellapur",
+    details: `🏢 *Abode Aravindam – Tellapur*\n
+📌 Project Overview:
+Welcome to Abode Aravindam – a premium gated community spanning 5.27 acres. 
+This prestigious project offers 567 thoughtfully designed 2 & 3 BHK apartments, blending contemporary luxury with serene living.
+
+🌟 Why Choose Abode Aravindam?
+• Spacious layouts with abundant natural light & ventilation
+• Prime location near schools, hospitals, shopping & transport hubs
+
+🏡 Exclusive Amenities:
+• Private Theatre for immersive entertainment
+• Stylish Club House & Banquet Hall for gatherings
+• State-of-the-art Gym & Landscaped Walking Trails
+
+📍 Location: Tellapur  ( Abode Aravindam  https://maps.app.goo.gl/X7zC73xRM1SDnXuh8?g_st=aw )
+📐 Property Area: 5.27 Acres
+🆔 RERA No: P01100005069
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+9 | 567 Flats | 2 & 3 BHK
+💰 Starting From: ₹92 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1KybOwrMM5-jmx-sJY3b-ij6SuqsG_-OU/view?usp=sharing",
+    },
+  },
+  "2": {
+    name: "MJ Lakeview Heights – Ameenpur",
+    details: `🏢 *MJ Lakeview Heights – Ameenpur*\n
+📌 Project Overview:
+Discover a life where the calm of nature meets city convenience. 
+An exclusive gated community beside Pedda Cheruvu Lake.
+Thoughtfully designed 2 & 3 BHK residences with abundant natural light, intelligent ventilation & seamless layouts.
+
+🌟 Why Choose MJ Lakeview Heights?
+• Serene lake-view location
+• Close to top schools, hospitals, shopping & transit routes
+• Elegant and spacious homes designed for comfort
+
+🏡 Amenities & Unit Plans:
+• First Floor – Banquet hall & guest rooms
+• Second Floor – Yoga/meditation area, conference room, indoor games
+• 18 Units Per Floor – Balanced community with privacy
+• Elegant Clubhouse – Recreation & community bonding
+
+📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )
+📐 Property Area: 1.5 Acres
+🆔 RERA No: P01100009015
+🏘 Property Type: Premium Gated Community
+🏢 Floors & Units: G+10 | 174 Flats | 2 & 3 BHK
+💰 Starting From: ₹82 Lakhs Onwards`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+      "3BHK": "https://drive.google.com/file/d/1DNNA8rz4mODKmSCQ4sxrySAa04WSa3qb/view?usp=sharing",
+    },
+  },
+  "3": {
+    name: "MJ Lakeview (Compact) – Ameenpur",
+    details: `📍 Location: Ameenpur ( MJ LAKE VIEW HEIGHTS https://share.google/oh3T5yEoGSl0ymT7R )`,
+    brochure: {
+      "2BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+      "3BHK": "https://drive.google.com/file/d/1mjh4WBYZN75NQNtL8zNRvALu_6rC8myb/view?usp=drivesdk",
+    },
+  },
+};
+
+
+// -------------------- Webhook --------------------
+app.post("/webhook", async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.entry) return res.sendStatus(200);
+
+    for (const entry of data.entry) {
+      for (const change of entry.changes || []) {
+        if (change.value && change.value.messages) {
+          for (const msg of change.value.messages) {
+            const from = msg.from;
+            const text = msg.text?.body?.trim().toLowerCase() || "";
+            const name = msg.sender_name || "Customer";
+
+            if (!sessions[from]) {
+              // New user → send template
+              const templateId = await sendHelloWorldTemplate(from, name);
+              sessions[from] = { name, stage: "waiting_for_reply", thanked: false, timer: null };
+              await logAction(from, name, "Template Sent", "hello_world_main sent, waiting for reply", templateId, "template_sent");
+              resetInactivityTimer(from, name);
+              continue;
+            }
+
+            const userSession = sessions[from];
+
+            // -------------------- Waiting for YES --------------------
+            if (userSession.stage === "waiting_for_reply") {
+              if (text === "yes") {
+                const msgTxt = `${getGreeting()} ${userSession.name}! ✨\nWelcome to Abode Constructions.🏡\n\nSelect an option 👇\n1️⃣ View Projects\n2️⃣ Talk to Expert\n3️⃣ Download Brochure\n4️⃣ Book a Site Visit\n\nPlease reply with 1, 2, 3, or 4`;
+                const id = await sendText(from, msgTxt);
+                userSession.stage = "main_menu";
+                await logAction(from, userSession.name, "Start Flow", "Main menu sent", id, "main_menu");
+              } else {
+                await sendText(from, "Please reply YES to continue.");
+              }
+              continue;
+            }
+
+            // -------------------- Main Menu --------------------
+            if (userSession.stage === "main_menu") {
+              let id;
+              if (text === "1") {
+                id = await sendText(from, `Available Projects:\n1️⃣ Abode Aravindam – Tellapur\n2️⃣ MJ Lakeview Heights – Ameenpur\n3️⃣ MJ Lakeview – Ameenpur`);
+                userSession.stage = "projects";
+                await logAction(from, userSession.name, "Viewed Projects", "List of projects displayed", id, "projects");
+              } else if (text === "2") {
+                id = await sendText(from, "📞 Call us: +91-8008312211");
+                userSession.stage = "done";
+                await logAction(from, userSession.name, "Talked to Expert", "Expert contact shared", id, "done");
+              } else if (text === "3") {
+                id = await sendText(from, "📄 Brochure Links: ...");
+                userSession.stage = "done";
+                await logAction(from, userSession.name, "Downloaded Brochure", "General brochures shared", id, "done");
+              } else if (text === "4") {
+                id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+                userSession.stage = "done";
+                await logAction(from, userSession.name, "Booked Site Visit", "Site visit booking link shared", id, "done");
+              } else {
+                id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, 3, or 4.");
+                await logAction(from, userSession.name, "Invalid Choice", `User sent: ${text}`, id, "main_menu");
+              }
+              continue;
+            }
+
+            // -------------------- Projects & Details --------------------
+            if (userSession.stage === "projects") {
+              if (["1", "2", "3"].includes(text)) {
+                const project = PROJECTS[text];
+                const id = await sendText(from, `📌 ${project.details}\n\nOptions:\n1️⃣ Talk to Expert\n2️⃣ Book Site Visit\n3️⃣ Download Brochure`);
+                userSession.stage = "project_details";
+                userSession.selectedProject = text;
+                await logAction(from, userSession.name, "Viewed Project Details", project.name, id, "project_details");
+              } else {
+                const id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+                await logAction(from, userSession.name, "Invalid Choice", `User sent: ${text}`, id, "projects");
+              }
+              continue;
+            }
+
+            if (userSession.stage === "project_details") {
+              const project = PROJECTS[userSession.selectedProject];
+              let id;
+              if (text === "1") {
+                id = await sendText(from, "📞 Call us: +91-8008312211");
+                await logAction(from, userSession.name, "Talked to Expert", `Expert contact for ${project.name}`, id, "done");
+              } else if (text === "2") {
+                id = await sendText(from, "🗓 Book your site visit here: https://abodegroups.com/contact-us/");
+                await logAction(from, userSession.name, "Booked Site Visit", `Site visit for ${project.name}`, id, "done");
+              } else if (text === "3") {
+                const msgTxt = `📄 Brochure Links:\n\n2BHK: ${project.brochure["2BHK"]}\n3BHK: ${project.brochure["3BHK"]}`;
+                id = await sendText(from, msgTxt);
+                await logAction(from, userSession.name, "Downloaded Brochure", `Project: ${project.name}`, id, "done");
+              } else {
+                id = await sendText(from, "❌ Invalid choice. Please reply with 1, 2, or 3.");
+                await logAction(from, userSession.name, "Invalid Choice", `User sent: ${text}`, id, "project_details");
+              }
+              userSession.stage = "done";
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("❌ Webhook error:", err.message);
+    res.sendStatus(500);
+  }
+});
+
+// -------------------- Manual Send Hello Template --------------------
+app.get("/send-hello", async (req, res) => {
+  const { phone, name } = req.query;
+  if (!phone) return res.status(400).send("❌ Phone number is required. Example: /send-hello?phone=918897019101&name=Rajeswari");
+
+  const templateId = await sendHelloWorldTemplate(phone, name || "Customer");
+
+  if (templateId) {
+    sessions[phone] = { name: name || "Customer", stage: "waiting_for_reply", thanked: false, timer: null };
+    await logAction(phone, name || "Customer", "Template Sent", "hello_world_main sent, waiting for reply", templateId, "template_sent");
+    resetInactivityTimer(phone, name || "Customer");
+    res.send(`✅ 'hello_world_main' template sent to ${phone}. Waiting for user reply.`);
+  } else {
+    res.status(500).send("❌ Failed to send WhatsApp template. Check console logs for details.");
+  }
+});
+
+// -------------------- Start Server --------------------
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
-
-
 
 
 
